@@ -130,7 +130,7 @@ export function creerServeur(options = {}) {
       const url = new URL(requete.url, "http://localhost");
       const chemin = decodeURIComponent(url.pathname);
 
-      if (await traiter(requete, reponse)) return;
+      if (await traiter(requete, reponse, { surface })) return;
 
       if (requete.method !== "GET" && requete.method !== "HEAD") {
         return envoyer(reponse, 405, "text/plain; charset=utf-8", "Méthode non autorisée.");
@@ -222,7 +222,10 @@ export async function demarrer(options = {}) {
   }
   console.log(`Console : http://127.0.0.1:${port}${cheminConsole}`);
   console.log(`Code de vérification : ${auth.codeVerification()} (renouvellement dans ${auth.secondesAvantRenouvellement()} s)`);
-  if (auth.motDePasseParDefaut()) {
+  if (administration && reglages.valeur("console_sans_mot_de_passe") === true) {
+    console.log("Accès libre : la console de ce port s'ouvre sans mot de passe. Le site garde le sien.");
+    console.log("Pour fermer ce port aux autres machines : STREAMTV_HOTE=127.0.0.1 npm run admin");
+  } else if (auth.motDePasseParDefaut()) {
     console.log("Attention : le mot de passe par défaut de la console est encore actif. Changez-le avant toute mise en ligne.");
   }
 

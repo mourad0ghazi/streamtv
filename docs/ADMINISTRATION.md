@@ -95,7 +95,7 @@ ensuite.
 
 ### Onglet Réglages {#onglet-reglages}
 
-**Ce qu'il montre.** Les neuf réglages du site, chacun avec son libellé, son
+**Ce qu'il montre.** Les dix réglages du site, chacun avec son libellé, son
 effet visible et son risque, plus le formulaire de changement de mot de passe.
 
 **Ce qu'il permet.** Modifier un réglage, une valeur à la fois ou plusieurs à la
@@ -187,6 +187,23 @@ Type : booléen. Défaut : faux.
 Effet visible : affiche en haut de chaque page un bandeau qui annonce une
 lecture seule. Risque : activé sur le site réel, il annonce à tort une lecture
 seule. La construction statique l'active d'elle-même.
+
+### Console sans mot de passe {#reglage-console-sans-mot-de-passe}
+
+Type : booléen. Défaut : faux. Valeurs : vrai ou faux.
+
+Effet visible : à vrai, la console servie par le port d'administration
+(`npm run admin`, port 3002) s'ouvre directement, sans formulaire, sans mot de
+passe et sans code. Un bandeau « Accès libre » reste affiché en haut de chaque
+onglet pour que personne n'oublie dans quel état il travaille. À faux, les
+barrières habituelles reviennent.
+
+Risque si mal réglé : sur ce port, quiconque l'atteint gère le catalogue
+(sources, import, réglages, journal). À réserver à un poste de confiance, et à
+combiner avec `STREAMTV_HOTE=127.0.0.1 npm run admin`, qui refuse les
+connexions venant d'ailleurs que de la machine. Le site public, lui, n'est
+jamais concerné : même réglage activé, la console servie avec le catalogue
+redemande le mot de passe.
 
 ### Code de vérification sur un nouvel appareil {#reglage-code-verification}
 

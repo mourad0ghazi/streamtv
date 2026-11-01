@@ -9,7 +9,7 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 ```bash
 npm start                 # http://127.0.0.1:3000   le site
 npm run admin             # http://127.0.0.1:3002   l'administration seule
-npm test                  # 459 tests, lanceur intégré de Node
+npm test                  # 466 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
@@ -77,8 +77,13 @@ en service, ce qui est recommandé dès que la console est joignable depuis
 Internet ; le champ n'apparaît alors dans le formulaire que si le serveur le
 demande.
 
-**Un port pour l'administration.** `npm run admin` démarre une surface dédiée
-sur le port 3002. Elle sert la console, ses ressources et l'API, jamais une page
+**Un port pour l'administration, sans mot de passe si vous le décidez.**
+`npm run admin` démarre une surface dédiée sur le port 3002, et le réglage
+`console_sans_mot_de_passe` (activé sur cette installation) l'ouvre directement :
+la console s'affiche sans formulaire, avec un bandeau « Accès libre » en haut.
+Ce réglage ne vaut **que** pour ce port : la console servie avec le catalogue
+garde son mot de passe, même réglage activé. Pour refermer le port aux autres
+machines : `STREAMTV_HOTE=127.0.0.1 npm run admin`. Elle sert la console, ses ressources et l'API, jamais une page
 du catalogue : demander `/chaines` y répond 404 avec un lien vers la console. La
 racine du port renvoie vers l'adresse privée de la console, ce qui ne dit rien
 de plus à qui a déjà trouvé le port. Les deux surfaces partagent le secret, donc
@@ -213,7 +218,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        459 tests, lanceur intégré de Node
+tests/        466 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

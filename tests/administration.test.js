@@ -9,6 +9,10 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 
+import { readFile } from "node:fs/promises";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { charger } from "../server/magasin.js";
 import { creerServeur } from "../server/serveur.js";
 import * as reglages from "../server/reglages.js";
@@ -19,10 +23,14 @@ let baseAdmin;
 let baseSite;
 let cheminConsole;
 let cookieSession = null;
+const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 before(async () => {
   await charger();
   await reglages.charger();
+  // Les tests partent d'une console fermée, quel que soit le réglage de
+  // l'installation ; les tests d'accès libre l'ouvrent explicitement.
+  await reglages.modifier({ console_sans_mot_de_passe: false }, { persister: false });
   cheminConsole = reglages.valeur("chemin_console");
 
   administration = creerServeur({ surface: "administration" });
@@ -218,4 +226,78 @@ test("un stockage refusé n'empêche pas de se connecter", async () => {
   assert.match(source, /catch \{\s*return null;\s*\}/, "un refus de stockage doit être absorbé");
   assert.match(source, /jetonMemoire/, "le jeton doit vivre en mémoire même sans stockage");
   assert.match(source, /globalThis\[type\]\?\.setItem/, "l'écriture doit tolérer un stockage absent");
+});
+
+/* ------------------------------------------------------------------ */
+/* Accès libre, limité à la surface d'administration                  */
+/* ------------------------------------------------------------------ */
+
+test("sans le réglage, le port d'administration exige toujours une session", async () => {
+  await reglages.modifier({ console_sans_mot_de_passe: false }, { persister: false });
+  const reponse = await demander(baseAdmin, "/api/admin/sources");
+  assert.equal(reponse.status, 401);
+  const session = await demander(baseAdmin, "/api/admin/session");
+  assert.equal((await session.json()).connecte, false);
+});
+
+test("avec le réglage, le port d'administration s'ouvre sans mot de passe", async () => {
+  await reglages.modifier({ console_sans_mot_de_passe: true }, { persister: false });
+  try {
+    const session = await demander(baseAdmin, "/api/admin/session");
+    const etat = await session.json();
+    assert.equal(etat.connecte, true);
+    assert.equal(etat.accesLibre, true);
+    assert.equal(etat.role, "administrateur");
+    assert.ok(etat.permissions.includes("sources.ecrire"));
+
+    for (const chemin of ["/api/admin/sources", "/api/admin/reglages", "/api/admin/statistiques", "/api/admin/audit"]) {
+      const reponse = await demander(baseAdmin, chemin);
+      assert.equal(reponse.status, 200, `${chemin} devrait être ouvert en accès libre`);
+    }
+
+    const connexion = await demander(baseAdmin, "/api/admin/connexion", { method: "POST", body: "{}" });
+    assert.equal(connexion.status, 200, "la connexion doit aboutir sans mot de passe");
+    assert.equal((await connexion.json()).accesLibre, true);
+  } finally {
+    await reglages.modifier({ console_sans_mot_de_passe: false }, { persister: false });
+  }
+});
+
+test("l'accès libre ne s'applique jamais au site public", async () => {
+  await reglages.modifier({ console_sans_mot_de_passe: true }, { persister: false });
+  try {
+    const session = await demander(baseSite, "/api/admin/session");
+    assert.equal((await session.json()).connecte, false, "le site public ne doit pas hériter de l'accès libre");
+    assert.equal((await demander(baseSite, "/api/admin/sources")).status, 401);
+    assert.equal((await demander(baseSite, "/api/admin/reglages")).status, 401);
+    assert.equal((await demander(baseSite, "/api/admin/statistiques")).status, 401);
+  } finally {
+    await reglages.modifier({ console_sans_mot_de_passe: false }, { persister: false });
+  }
+});
+
+test("l'accès libre est journalisé une fois, et la console l'annonce", async () => {
+  const journal = await readFile(join(RACINE, "server", "audit.js"), "utf8");
+  assert.match(journal, /export async function journaliser/);
+
+  const routeur = await readFile(join(RACINE, "server", "routeur.js"), "utf8");
+  assert.match(routeur, /accesLibreJournalise/, "l'ouverture doit laisser une trace");
+  assert.match(routeur, /acces: "libre"/);
+
+  const console_ = await (await demander(baseAdmin, "/js/admin/console.js")).text();
+  assert.match(console_, /Accès libre/, "la console doit afficher un bandeau");
+  assert.match(console_, /session\.accesLibre/);
+});
+
+test("le réglage est décrit au serveur et se ferme depuis la console", async () => {
+  const { DESCRIPTION } = await import("../server/reglages.js");
+  const description = DESCRIPTION.find((d) => d.cle === "console_sans_mot_de_passe");
+  assert.ok(description, "le réglage doit exister");
+  assert.equal(description.type, "booleen");
+  assert.equal(description.doc, "reglage-console-sans-mot-de-passe");
+  assert.match(description.risque, /port d'administration/);
+
+  const refus = await reglages.modifier({ console_sans_mot_de_passe: "oui" }, { persister: false });
+  assert.equal(refus.applique, false, "une valeur non booléenne doit être refusée");
+  assert.match(refus.refuses.console_sans_mot_de_passe, /vrai ou faux/);
 });

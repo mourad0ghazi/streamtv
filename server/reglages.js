@@ -13,7 +13,7 @@ import { DOSSIER_DONNEES, ecrireAtomique } from "./magasin.js";
 export const FICHIER = join(DOSSIER_DONNEES, "reglages.json");
 
 /**
- * Les neuf réglages du site. `verifier` renvoie null si la valeur convient,
+ * Les dix réglages du site. `verifier` renvoie null si la valeur convient,
  * sinon un message français qui dit ce qui ne va pas.
  */
 export const DESCRIPTION = [
@@ -115,6 +115,18 @@ export const DESCRIPTION = [
     }
   },
   {
+    cle: "console_sans_mot_de_passe",
+    libelle: "Console sans mot de passe",
+    type: "booleen",
+    defaut: false,
+    doc: "reglage-console-sans-mot-de-passe",
+    effet: "Activé, la console de la surface d'administration s'ouvre sans mot de passe ni code. Le site, lui, garde les siennes.",
+    risque: "Activé, quiconque atteint le port d'administration gère le catalogue : sources, import, réglages. À réserver à un poste local, avec STREAMTV_HOTE=127.0.0.1.",
+    verifier(v) {
+      return typeof v === "boolean" ? null : "La valeur doit être vrai ou faux.";
+    }
+  },
+  {
     cle: "code_verification",
     libelle: "Code de vérification sur un nouvel appareil",
     type: "booleen",
@@ -150,6 +162,14 @@ function entierEntre(valeur, min, max) {
 
 let courant = null;
 
+/**
+ * Sous `STREAMTV_TESTS=1` (posé par `npm test`), les réglages ne sont jamais
+ * écrits sur disque. Sans cela, lancer les tests modifiait la configuration
+ * réelle de l'installation : un test de la console remettait par exemple
+ * l'accès libre à faux, et le serveur redémarrait fermé.
+ */
+const PERSISTER = process.env.STREAMTV_TESTS !== "1";
+
 /** Valeurs par défaut, dans l'ordre de la description. */
 export function defauts() {
   return Object.fromEntries(DESCRIPTION.map((d) => [d.cle, d.defaut]));
@@ -184,7 +204,7 @@ export function valeur(cle) {
  * Valide et enregistre un lot de réglages. Renvoie les valeurs refusées avec
  * leur message : le serveur ne se fie jamais à l'interface.
  */
-export async function modifier(changements) {
+export async function modifier(changements, options = {}) {
   await charger();
   const acceptes = {};
   const refuses = {};
@@ -203,7 +223,10 @@ export async function modifier(changements) {
   }
   if (Object.keys(refuses).length) return { acceptes: {}, refuses, applique: false };
   courant = { ...courant, ...acceptes };
-  await ecrireAtomique(FICHIER, courant);
+  // `persister: false` sert aux tests : ils changent l'état en mémoire sans
+  // toucher au fichier de l'installation. Sans cela, lancer les tests
+  // modifierait les réglages réels du porteur.
+  if (options.persister !== false && PERSISTER) await ecrireAtomique(FICHIER, courant);
   return { acceptes, refuses, applique: true };
 }
 

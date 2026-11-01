@@ -238,7 +238,8 @@ async function signaler(famille, id) {
 /* Console                                                             */
 /* ------------------------------------------------------------------ */
 
-async function exigerSession(requete, reponse, permission) {
+async function exigerSession(requete, reponse, permission, options = {}) {
+  if (options.accesLibre) return { role: "administrateur", libre: true };
   const session = auth.verifierSession(jetonSession(requete));
   if (!session) {
     json(reponse, 401, { erreur: "Session absente ou expirée. Reconnectez-vous." });
@@ -323,11 +324,23 @@ function statistiques() {
 /* Aiguillage                                                          */
 /* ------------------------------------------------------------------ */
 
-export async function traiter(requete, reponse) {
+/**
+ * Accès libre à la console, décidé par le réglage `console_sans_mot_de_passe`.
+ *
+ * Il ne vaut que sur la surface d'administration : le site public garde son mot
+ * de passe, quoi qu'il arrive. Sans cette restriction, activer le réglage
+ * ouvrirait aussi la console servie avec le catalogue, c'est-à-dire la porte la
+ * plus exposée. Le chemin privé reste en place dans tous les cas.
+ */
+let accesLibreJournalise = false;
+
+export async function traiter(requete, reponse, options = {}) {
   const url = new URL(requete.url, "http://localhost");
   const chemin = url.pathname;
   const methode = requete.method;
   const requete_ = Object.fromEntries(url.searchParams.entries());
+  const surface = options.surface === "administration" ? "administration" : "site";
+  const accesLibre = () => surface === "administration" && reglages.valeur("console_sans_mot_de_passe") === true;
 
   if (!chemin.startsWith("/api/")) return false;
 
@@ -413,6 +426,13 @@ export async function traiter(requete, reponse) {
     /* ---------------- console ---------------- */
 
     if (chemin === "/api/admin/connexion" && methode === "POST") {
+      if (accesLibre()) {
+        if (!accesLibreJournalise) {
+          accesLibreJournalise = true;
+          await audit.journaliser("A01", { acces: "libre", surface }, "administrateur");
+        }
+        return json(reponse, 200, { role: "administrateur", accesLibre: true }), true;
+      }
       const corps = await lireCorps(requete);
       const resultat = await auth.connexion({
         motDePasse: corps.motDePasse,
@@ -445,11 +465,22 @@ export async function traiter(requete, reponse) {
     }
 
     if (chemin === "/api/admin/deconnexion" && methode === "POST") {
+      if (accesLibre()) return json(reponse, 200, { ok: true, accesLibre: true }), true;
       auth.deconnexion(jetonSession(requete));
       return json(reponse, 200, { ok: true }, { "set-cookie": ["stv_session=; Path=/; Max-Age=0"] }), true;
     }
 
     if (chemin === "/api/admin/session" && methode === "GET") {
+      if (accesLibre()) {
+        return json(reponse, 200, {
+          connecte: true,
+          accesLibre: true,
+          role: "administrateur",
+          permissions: auth.permissions("administrateur"),
+          motDePasseParDefaut: auth.motDePasseParDefaut(),
+          codeRequis: false
+        }), true;
+      }
       const session = auth.verifierSession(jetonSession(requete));
       return json(reponse, 200, {
         connecte: Boolean(session),
@@ -461,7 +492,7 @@ export async function traiter(requete, reponse) {
     }
 
     if (chemin === "/api/admin/sources" && methode === "GET") {
-      if (!(await exigerSession(requete, reponse, "sources.lire"))) return true;
+      if (!(await exigerSession(requete, reponse, "sources.lire", { accesLibre: accesLibre() }))) return true;
       const etats = await sonde.etats();
       const sourcess = instantane().sources.sources ?? [];
       // Un contenu compte pour sa source, quelle que soit la famille : un film
@@ -485,7 +516,7 @@ export async function traiter(requete, reponse) {
     }
 
     if (chemin.startsWith("/api/admin/sources/") && methode === "POST") {
-      const session = await exigerSession(requete, reponse, "sources.ecrire");
+      const session = await exigerSession(requete, reponse, "sources.ecrire", { accesLibre: accesLibre() });
       if (!session) return true;
       const id = decodeURIComponent(chemin.slice("/api/admin/sources/".length));
       const corps = await lireCorps(requete);
@@ -518,12 +549,12 @@ export async function traiter(requete, reponse) {
     }
 
     if (chemin === "/api/admin/reglages" && methode === "GET") {
-      if (!(await exigerSession(requete, reponse, "reglages.lire"))) return true;
+      if (!(await exigerSession(requete, reponse, "reglages.lire", { accesLibre: accesLibre() }))) return true;
       return json(reponse, 200, { valeurs: reglages.valeurs(), description: reglages.DESCRIPTION }), true;
     }
 
     if (chemin === "/api/admin/reglages" && methode === "POST") {
-      const session = await exigerSession(requete, reponse, "reglages.ecrire");
+      const session = await exigerSession(requete, reponse, "reglages.ecrire", { accesLibre: accesLibre() });
       if (!session) return true;
       const corps = await lireCorps(requete);
       const avant = reglages.valeurs();
@@ -538,24 +569,24 @@ export async function traiter(requete, reponse) {
     }
 
     if (chemin === "/api/admin/audit" && methode === "GET") {
-      if (!(await exigerSession(requete, reponse, "audit.lire"))) return true;
+      if (!(await exigerSession(requete, reponse, "audit.lire", { accesLibre: accesLibre() }))) return true;
       return json(reponse, 200, { entrees: await audit.lire(200), codes: audit.CODES }), true;
     }
 
     if (chemin === "/api/admin/statistiques" && methode === "GET") {
-      if (!(await exigerSession(requete, reponse, "statistiques.lire"))) return true;
+      if (!(await exigerSession(requete, reponse, "statistiques.lire", { accesLibre: accesLibre() }))) return true;
       return json(reponse, 200, statistiques()), true;
     }
 
     if (chemin === "/api/admin/sonder" && methode === "POST") {
-      const session = await exigerSession(requete, reponse, "sources.lire");
+      const session = await exigerSession(requete, reponse, "sources.lire", { accesLibre: accesLibre() });
       if (!session) return true;
       const resultats = await sonde.sonderTout(instantane().sources.sources ?? []);
       return json(reponse, 200, { resultats }), true;
     }
 
     if (chemin === "/api/admin/import" && methode === "POST") {
-      const session = await exigerSession(requete, reponse, "import.lancer");
+      const session = await exigerSession(requete, reponse, "import.lancer", { accesLibre: accesLibre() });
       if (!session) return true;
       const corps = await lireCorps(requete);
       const bloc = instantane().sources;
@@ -569,7 +600,7 @@ export async function traiter(requete, reponse) {
     }
 
     if (chemin === "/api/admin/motdepasse" && methode === "POST") {
-      const session = await exigerSession(requete, reponse, "reglages.ecrire");
+      const session = await exigerSession(requete, reponse, "reglages.ecrire", { accesLibre: accesLibre() });
       if (!session) return true;
       const corps = await lireCorps(requete);
       const resultat = await auth.changerMotDePasse(corps.ancien, corps.nouveau);

@@ -153,7 +153,24 @@ async function afficher() {
   );
 
   const zone = h("div", { class: "panneau", role: "tabpanel" }, h("p", { class: "attente" }, "Chargement de l'onglet"));
-  RACINE.append(h("div", { class: "console" }, entete, barreOnglets(), h("div", { class: "panneau" }, lienDocumentation(onglet.doc)), zone));
+  RACINE.append(
+    h(
+      "div",
+      { class: "console" },
+      session.accesLibre
+        ? h(
+            "div",
+            { class: "bandeau-demo", role: "status" },
+            h("strong", {}, "Accès libre"),
+            " · cette console s'ouvre sans mot de passe. Réglages : « Console sans mot de passe » pour la refermer."
+          )
+        : null,
+      entete,
+      barreOnglets(),
+      h("div", { class: "panneau" }, lienDocumentation(onglet.doc)),
+      zone
+    )
+  );
 
   try {
     const contenu = await panneauDemande(onglet);
@@ -186,7 +203,12 @@ async function demarrer() {
     );
     return;
   }
-  session = { role: etat.role, dureeMinutes: etat.dureeMinutes, motDePasseParDefaut: etat.motDePasseParDefaut };
+  session = {
+    role: etat.role,
+    dureeMinutes: etat.dureeMinutes,
+    motDePasseParDefaut: etat.motDePasseParDefaut,
+    accesLibre: etat.accesLibre === true
+  };
   await afficher();
   if (etat.motDePasseParDefaut) {
     notifier("Le mot de passe par défaut est actif : changez-le dans l'onglet Réglages.");

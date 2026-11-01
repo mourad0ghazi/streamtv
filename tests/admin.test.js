@@ -54,7 +54,7 @@ test("le mot de passe seul ouvre une session quand le code n'est pas demandé", 
 });
 
 test("quand le code est demandé, le mot de passe seul ne suffit plus", async () => {
-  await reglages.modifier({ code_verification: true });
+  await reglages.modifier({ code_verification: true }, { persister: false });
   try {
     const sansCode = await demander("/api/admin/connexion", {
       method: "POST",
@@ -69,7 +69,7 @@ test("quand le code est demandé, le mot de passe seul ne suffit plus", async ()
     });
     assert.equal(avecCode.statut, 200);
   } finally {
-    await reglages.modifier({ code_verification: false });
+    await reglages.modifier({ code_verification: false }, { persister: false });
   }
 });
 
@@ -93,7 +93,7 @@ test("la session ouverte donne accès à la liste des sources", async () => {
 test("la session ouverte donne accès aux réglages et à leur description", async () => {
   const { statut, corps } = await demander("/api/admin/reglages");
   assert.equal(statut, 200);
-  assert.equal(corps.description.length, 9);
+  assert.equal(corps.description.length, 10);
   assert.ok(corps.valeurs.plafond_cartes > 0);
 });
 

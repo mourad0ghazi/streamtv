@@ -1,5 +1,34 @@
 # Journal des versions
 
+## 3.21.0, 1er novembre 2026
+
+### Ce qui change
+
+- **Console sans mot de passe**, sur décision du porteur : nouveau réglage
+  `console_sans_mot_de_passe`, activé sur cette installation. Sur le port
+  d'administration (3002), la console s'ouvre directement, sans formulaire ni
+  code, et affiche un bandeau « Accès libre » dans chaque onglet.
+- **Portée limitée.** Le réglage ne vaut que pour la surface d'administration :
+  si le site était lancé sur le même réglage activé, la console servie avec le
+  catalogue répondrait toujours 401. C'est testé explicitement, parce que
+  l'inverse exposerait la porte la plus publique.
+- **Journal.** La première ouverture en accès libre écrit une entrée A01 avec
+  `acces: "libre"` : la trace existe, elle n'est pas noyée dans le silence.
+- **Dix réglages** au lieu de neuf.
+- **Configuration protégée des tests.** `npm test` pose `STREAMTV_TESTS=1` et
+  n'écrit plus `data/reglages.json` : lancer les tests ne referme plus la
+  console que le porteur a ouverte.
+
+### Ce qui casse
+
+- `GET /api/etat` annonce `3.21.0`.
+- La réponse de `GET /api/admin/session` porte un champ `accesLibre` quand le
+  réglage est actif ; `connecte` y vaut alors `true` sans identifiant.
+
+### Chiffres de cette version
+
+- 466 tests, tous passants, lanceur `node --test`.
+
 ## 3.20.0, 1er novembre 2026
 
 ### Ce qui change
