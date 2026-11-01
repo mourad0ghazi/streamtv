@@ -43,6 +43,14 @@ test("une page de fiche de chaîne est servie par la coquille", async () => {
   assert.match(corps, /StreamTV/);
 });
 
+test("les en-têtes n'interdisent pas la prévisualisation encadrée", async () => {
+  const { entetes } = await lire("/");
+  const csp = entetes.get("content-security-policy") ?? "";
+  assert.match(csp, /frame-ancestors 'self' https:\/\/\*\.e2b\.app/, "la prévisualisation doit pouvoir encadrer le site");
+  assert.equal(entetes.get("x-frame-options"), null, "x-frame-options primerait sur frame-ancestors et blanchirait la prévisualisation");
+  assert.equal(entetes.get("x-content-type-options"), "nosniff");
+});
+
 test("une page inconnue reste une erreur, pas une coquille", async () => {
   const { statut } = await lire("/favoris-de-lecture");
   assert.equal(statut, 404);

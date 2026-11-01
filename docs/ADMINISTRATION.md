@@ -335,6 +335,16 @@ douze dernières vivent dans le stockage local du navigateur, sous la clé
 panne. Aucune de ces valeurs ne remonte au serveur, et le journal d'audit n'en
 garde aucune trace.
 
+**Le service worker retient la dernière version vue.** Il sert le réseau
+d'abord, donc une mise à jour se voit au rechargement suivant. Si un poste reste
+bloqué sur une version ancienne, videz les données du site : le cache porte le
+numéro de version et disparaît à la suivante.
+
+**Le site s'affiche dans un cadre.** La politique de sécurité autorise
+`frame-ancestors` pour le site lui-même et pour les domaines de prévisualisation.
+Pour héberger le site ailleurs dans une iframe, renseignez `STREAMTV_CADRES`
+(par exemple `https://exemple.fr`) avant de démarrer le serveur.
+
 **La liste de zapping est plafonnée à 300 chaînes.** Un filtre très large, par
 exemple aucune catégorie et aucun pays, prend les 300 premières du tri
 alphabétique. Le panneau l'annonce alors explicitement, avec le total réel du

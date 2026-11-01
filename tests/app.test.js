@@ -31,6 +31,22 @@ const page = monter(Object.assign(new Noeud("main"), { id: "page" }));
 await import("../public/js/app.js");
 await new Promise((resoudre) => setTimeout(resoudre, 60));
 
+test("la coquille enregistre le service worker, sans script en ligne", async () => {
+  const source = await readFile(join(RACINE, "public", "js", "app.js"), "utf8");
+  assert.match(source, /serviceWorker\.register\("\/sw\.js"\)/, "le service worker n'est jamais enregistré");
+  const html = await readFile(join(RACINE, "public", "index.html"), "utf8");
+  assert.equal(/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/.test(html), false, "un script en ligne serait bloqué par la politique de sécurité");
+});
+
+test("le service worker précharge les pages et tous les modules", async () => {
+  const sw = await readFile(join(RACINE, "public", "sw.js"), "utf8");
+  for (const page of ["/", "/chaines", "/anime", "/films", "/recherche", "/favoris"]) {
+    assert.ok(sw.includes(`"${page}"`), `${page} manque au préchargement`);
+  }
+  assert.match(sw, /\/js\/zapping\.js\?v=/);
+  assert.match(sw, /\/css\/lecteur\.css\?v=/);
+});
+
 test("la coquille monte un en-tête avec les trois entrées et les favoris", () => {
   const entetes = parBalise(application, "header");
   assert.equal(entetes.length, 1);

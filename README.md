@@ -8,7 +8,7 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 
 ```bash
 npm start                 # http://127.0.0.1:3000
-npm test                  # 411 tests, lanceur intégré de Node
+npm test                  # 414 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
@@ -56,6 +56,13 @@ mémoire locale (`streamtv.zapping.v1`), sans compte et sans envoi réseau. La p
 des chaînes rouvre sur un bandeau « Reprendre » et une rangée « Récemment
 regardées ». Quand une chaîne ne répond pas, le lecteur propose de réessayer,
 de passer à la suivante, d'ouvrir la liste, ou de revenir au catalogue.
+
+**Sur le téléphone.** Le site s'installe comme application : `public/sw.js`
+précharge la coquille et tous les modules, sert le réseau d'abord et retombe sur
+le cache quand la connexion manque. Les appels `/api/` ne sont jamais mis en
+cache : un catalogue périmé vaut moins qu'une erreur franche. L'enregistrement se
+fait depuis `app.js`, donc sans script en ligne, et son échec est silencieux :
+un navigateur qui refuse le service worker affiche quand même le site.
 
 La console n'est pas à `/admin` : son adresse est le réglage `chemin_console`,
 par défaut `/console-f3a91c`. Quatre barrières la protègent : chemin privé, mot
@@ -153,7 +160,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        411 tests, lanceur intégré de Node
+tests/        414 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

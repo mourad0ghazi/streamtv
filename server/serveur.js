@@ -44,10 +44,19 @@ const PAGES = [
   /^\/favoris$/
 ];
 
+/**
+ * Cadres autorisés à afficher le site dans une iframe. La prévisualisation de
+ * l'atelier sert le site depuis un autre domaine : un cadre fermé à
+ * « SAMEORIGIN » y donnerait une page blanche. La liste reste nominative, se
+ * règle par la variable d'environnement STREAMTV_CADRES, et la directive
+ * frame-ancestors remplace x-frame-options, qui ne sait pas nommer plusieurs
+ * origines.
+ */
+const CADRES_AUTORISES = process.env.STREAMTV_CADRES?.trim() || "https://*.e2b.app https://*.arena.ai https://arena.ai";
+
 const ENTETES_SECURITE = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
-  "x-frame-options": "SAMEORIGIN",
   "content-security-policy": [
     "default-src 'self'",
     "script-src 'self'",
@@ -57,7 +66,8 @@ const ENTETES_SECURITE = {
     "connect-src 'self' https:",
     "font-src 'self'",
     "form-action 'self'",
-    "base-uri 'self'"
+    "base-uri 'self'",
+    `frame-ancestors 'self' ${CADRES_AUTORISES}`
   ].join("; ")
 };
 

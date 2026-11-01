@@ -176,6 +176,18 @@ function intercepterLien(evenement, lien) {
 
 window.addEventListener("popstate", () => rendrePage());
 
+/**
+ * Le service worker donne le mode hors ligne et l'installation. Il est
+ * enregistré ici, en module, parce que la politique de sécurité interdit le
+ * script en ligne. Un navigateur qui refuse l'enregistrement, un cadre sans
+ * droit de stockage ou un contexte non sécurisé ne doivent pas empêcher le
+ * site de s'afficher : l'échec est avalé, le site continue sans cache.
+ */
+function enregistrerServiceWorker() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+
 async function demarrer() {
   app.racine = document.getElementById("application");
   app.zone = document.getElementById("page");
@@ -187,6 +199,7 @@ async function demarrer() {
     app.attenteSecondes = 10;
   }
   await rendrePage();
+  enregistrerServiceWorker();
 }
 
 demarrer();

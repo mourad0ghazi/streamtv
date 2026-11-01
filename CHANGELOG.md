@@ -55,6 +55,13 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 - **Page Favoris** : `/favoris` était connue de la coquille et de la
   navigation, mais absente des pages rendues par le serveur ; le lien menait à
   un 404. La route est servie, deux tests la couvrent.
+- **Service worker** : `public/sw.js` existait et préchargeait tout, mais aucun
+  code ne l'enregistrait : le mode hors ligne et l'installation ne prenaient
+  jamais effet. L'enregistrement vit dans `app.js`, hors ligne d'en-tête, et son
+  échec n'empêche pas le site de s'afficher.
+- **Prévisualisation encadrée** : `x-frame-options: SAMEORIGIN` blanchissait le
+  site dans la console d'aperçu. La politique de sécurité nomme désormais les
+  cadres autorisés (`frame-ancestors`), réglables par `STREAMTV_CADRES`.
 - **Design** : jeu de jetons complet, un seul accent, aucune ombre hors éléments
   flottants, un test qui refuse dégradés, emoji d'interface, tirets cadratins,
   mots de bateleur, tailles hors échelle et espacements non multiples de 4.
@@ -88,6 +95,6 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 ### Chiffres de cette version
 
-- 411 tests, tous passants, lanceur `node --test`.
+- 414 tests, tous passants, lanceur `node --test`.
 - 8 199 chaînes, 18 catégories, 179 pays, 180 sources déclarées, 515 playlists déclarées.
 - 3 animés, 4 films, tous sous licence affichée.
