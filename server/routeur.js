@@ -358,7 +358,7 @@ export async function traiter(requete, reponse, options = {}) {
   // Relais de flux : le navigateur demande au site, le site demande à la
   // chaîne. C'est ce qui règle le CORS, le contenu mixte et le User-Agent.
   if (chemin === proxy.CHEMIN) {
-    await lecture.rafraichir();
+    // `traiter` rafraîchit lui-même les réglages de lecture.
     return proxy.traiter({ requete, reponse, recherche: url.searchParams });
   }
 
@@ -383,6 +383,7 @@ export async function traiter(requete, reponse, options = {}) {
   try {
     if (chemin === "/api/etat" && methode === "GET") {
       const plafond = reglages.valeur("plafond_cartes");
+      await lecture.rafraichir();
       return json(reponse, 200, {
         version: VERSION,
         date: instantane().chaines.date,
