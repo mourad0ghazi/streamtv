@@ -9,12 +9,13 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 ```bash
 npm start                 # http://127.0.0.1:3000   le site
 npm run admin             # http://127.0.0.1:3002   l'administration seule
-npm test                  # 466 tests, lanceur intégré de Node
+npm test                  # 490 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
 node scripts/verify.js --base http://127.0.0.1:3000
 
+npm run cles              # clés d'API films (TMDb/OMDb) dans data/cles-api.json
 npm run publier           # publie la démonstration dans docs/, pour GitHub Pages
 node scripts/verifier-publication.mjs  # contrôle l'adresse publiée
 ```
@@ -100,6 +101,11 @@ Aucune donnée n'est inventée pour remplir une rangée.
   sous licence Unlicense (domaine public), relevé du 1er novembre 2026.
   8 199 chaînes retenues sur 179 pays. Le relevé n'est pas versionné : voir la
   section « Reconstruire le catalogue ».
+- **Compléments TMDb** (facultatif) : avec une clé d'API, chaque fiche de film
+  affiche en plus la note de la communauté, la durée officielle et un résumé
+  français, dans un bloc attribué. Sans clé, la fiche s'affiche seule : rien
+  n'est inventé. Voir `docs/ADMINISTRATION.md`, section « Les clés d'API des
+  films ».
 - **Films** : quatre films ouverts du Blender Institute (Sintel, Big Buck Bunny,
   Elephants Dream, Tears of Steel), sous Creative Commons Attribution, licence
   indiquée sur chaque fiche.
@@ -218,7 +224,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        466 tests, lanceur intégré de Node
+tests/        490 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

@@ -232,3 +232,26 @@ test("la liste des onglets de la console est cohérente", () => {
   assert.equal(ONGLETS.length, 5);
   assert.deepEqual(ONGLETS.map((o) => o.cle), ["sources", "anime", "films", "reglages", "journal"]);
 });
+
+test("la fiche TMDb d'un film répond sans jamais bloquer la page", async () => {
+  const { statut, corps } = await lire("/api/films/fi-0001/tmdb");
+  assert.equal(statut, 200, "un complément indisponible n'est pas une erreur de la page");
+  assert.equal(typeof corps.disponible, "boolean");
+  if (!corps.disponible) {
+    assert.ok(corps.raison.length > 20, "l'indisponibilité doit être expliquée");
+    assert.match(corps.raison, /TMDb|clé/i);
+  } else {
+    assert.match(corps.fiche.attribution, /TMDb/);
+  }
+});
+
+test("une fiche TMDb pour un film inconnu répond 404 en français", async () => {
+  const { statut, corps } = await lire("/api/films/fi-9999/tmdb");
+  assert.equal(statut, 404);
+  assert.match(corps.erreur, /introuvable/);
+});
+
+test("l'état des clés films est réservé à la console", async () => {
+  const { statut } = await lire("/api/admin/cles-films");
+  assert.equal(statut, 401);
+});

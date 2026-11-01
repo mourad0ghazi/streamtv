@@ -161,6 +161,14 @@ function repondreStatique(cheminComplet, donnees) {
     const source = donnees.sources.find((s) => s.id === chaine.source);
     return { ...chaine, licence: licenceDes(chaine, donnees), nomSource: source?.nom ?? null };
   }
+  if (chemin.startsWith("/api/films/") && chemin.endsWith("/tmdb")) {
+    // La démonstration statique n'a pas de serveur : elle ne peut ni garder des
+    // clés ni appeler TMDb. Elle le dit, plutôt que de faire semblant.
+    return {
+      disponible: false,
+      raison: "La démonstration statique n'appelle pas TMDb : sans serveur, elle n'a nulle part où garder une clé."
+    };
+  }
   if (chemin === "/api/anime") {
     const retenus = catalogue.filtrerAnime(donnees.anime, q);
     return {

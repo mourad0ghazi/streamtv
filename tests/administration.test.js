@@ -301,3 +301,24 @@ test("le réglage est décrit au serveur et se ferme depuis la console", async (
   assert.equal(refus.applique, false, "une valeur non booléenne doit être refusée");
   assert.match(refus.refuses.console_sans_mot_de_passe, /vrai ou faux/);
 });
+
+test("la console voit l'état des clés films, sans jamais leur valeur", async () => {
+  await reglages.modifier({ console_sans_mot_de_passe: true }, { persister: false });
+  try {
+    const reponse = await demander(baseAdmin, "/api/admin/cles-films");
+    assert.equal(reponse.status, 200);
+    const corps = await reponse.json();
+    assert.equal(typeof corps.cles.tmdb, "number");
+    assert.equal(typeof corps.cles.disponible, "boolean");
+    assert.ok(corps.cles.tmdb >= 0);
+    assert.match(corps.attribution, /TMDb/);
+    assert.equal(typeof corps.cache.entrees, "number");
+
+    const texte = JSON.stringify(corps);
+    const { cleListe } = await import("../server/cles-films.js");
+    const premiere = await cleListe("tmdb", 0);
+    if (premiere) assert.equal(texte.includes(premiere), false, "une clé ne doit jamais sortir du serveur");
+  } finally {
+    await reglages.modifier({ console_sans_mot_de_passe: false }, { persister: false });
+  }
+});

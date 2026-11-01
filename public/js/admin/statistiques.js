@@ -6,6 +6,39 @@
 import { h } from "../dom.js";
 import { obtenir } from "../api.js";
 
+/**
+ * État des clés d'API films. Les valeurs des clés ne sortent jamais du serveur :
+ * la console n'affiche que des nombres, une origine et une date.
+ */
+async function panneauClesFilms() {
+  let etat;
+  try {
+    etat = await obtenir("/api/admin/cles-films");
+  } catch (erreur) {
+    return h("div", { class: "bloc" }, h("div", { class: "bloc__titre" }, "Clés d'API films"), h("p", { class: "champ__aide" }, erreur.message));
+  }
+  const { cles, cache } = etat;
+  return h(
+    "div",
+    { class: "bloc" },
+    h("div", { class: "bloc__titre" }, "Clés d'API films"),
+    h(
+      "p",
+      { class: "page__chapeau" },
+      cles.disponible
+        ? `${cles.tmdb} clé${cles.tmdb > 1 ? "s" : ""} TMDb et ${cles.omdb} OMDb${cles.personnelle ? " (dont une clé personnelle, prioritaire)" : " (pool public partagé)"}.`
+        : "Aucune clé TMDb : les fiches de film affichent seulement les données du catalogue."
+    ),
+    h(
+      "p",
+      { class: "champ__aide" },
+      `${cache.entrees} fiche${cache.entrees > 1 ? "s" : ""} TMDb en cache${cache.dernier ? `, dernier relevé le ${new Date(cache.dernier).toLocaleDateString("fr-FR")}` : ""}. Origine : ${cles.origine ?? "aucune"}.`
+    ),
+    cles.avertissement ? h("p", { class: "champ__aide" }, cles.avertissement) : null,
+    h("p", { class: "champ__aide" }, etat.attribution)
+  );
+}
+
 function compteur(valeur, libelle) {
   return h("div", { class: "compteur" }, h("div", { class: "compteur__valeur" }, String(valeur)), h("div", { class: "compteur__libelle" }, libelle));
 }
@@ -48,6 +81,7 @@ export async function panneauStatistiques(famille) {
           h("ul", {}, bloc.derniers.map((d) => h("li", { class: "resultat__sous" }, d.titre)))
         )
       : null,
+    famille === "films" ? await panneauClesFilms() : null,
     h(
       "table",
       { class: "tableau" },

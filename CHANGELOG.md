@@ -1,5 +1,38 @@
 # Journal des versions
 
+## 3.22.0, 1er novembre 2026
+
+### Ce qui change
+
+- **Clés d'API films.** `npm run cles` rassemble un pool de clés TMDb et OMDb
+  publiques avec le paquet de développement `freekeys`, et l'écrit dans
+  `data/cles-api.json` (non versionné). Une clé personnelle posée dans
+  `TMDB_API_KEY` passe devant le pool.
+- **Fiche TMDb sur la page film.** Note de la communauté, nombre de votes, durée
+  officielle, genres et résumé en français, affichés dans un bloc séparé qui
+  porte la mention d'attribution exigée par TMDb. Le catalogue reste la source
+  principale : aucun titre, synopsis ni affiche n'est remplacé.
+- **Rotation et cache.** Une clé refusée (401) ou épuisée (429) cède la place à
+  la suivante ; les fiches sont gardées sept jours dans `data/cache-films.json`.
+- **Dégradation honnête.** Sans clé, sans réseau ou sans réponse exploitable, la
+  page film s'affiche normalement et une ligne dit pourquoi. Rien n'est inventé.
+- **Console.** L'onglet Films montre le nombre de clés par service, leur origine,
+  les fiches en cache et la date du dernier relevé. Les valeurs des clés ne
+  sortent jamais du serveur.
+
+### Ce qui casse
+
+- `GET /api/etat` annonce `3.22.0`.
+- `package.json` déclare une dépendance de **développement**, `freekeys`. C'est
+  la première du projet, et elle ne sert qu'à la mise en place : aucun fichier
+  de `server/` ni de `public/` ne l'importe, et un test le vérifie. Le garde-fou
+  « aucune dépendance » reste donc vrai à l'exécution.
+
+### Chiffres de cette version
+
+- 490 tests, tous passants, lanceur `node --test`.
+- 24 clés publiques (12 TMDb, 12 OMDb), zéro dépendance d'exécution.
+
 ## 3.21.0, 1er novembre 2026
 
 ### Ce qui change

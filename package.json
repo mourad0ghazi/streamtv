@@ -1,6 +1,6 @@
 {
   "name": "streamtv",
-  "version": "3.21.0",
+  "version": "3.22.0",
   "private": true,
   "type": "module",
   "description": "Catalogue vidéo web à trois entrées : chaînes en direct, animés, films.",
@@ -19,6 +19,10 @@
     "statique": "node scripts/construire-statique.mjs",
     "publier": "node scripts/construire-statique.mjs --base /streamtv --sortie docs --conserver ADMINISTRATION.md",
     "statique:servir": "node scripts/construire-statique.mjs --servir",
-    "verify": "node scripts/verify.js"
+    "verify": "node scripts/verify.js",
+    "cles": "node scripts/obtenir-cles.mjs"
+  },
+  "devDependencies": {
+    "freekeys": "^0.0.4"
   }
 }

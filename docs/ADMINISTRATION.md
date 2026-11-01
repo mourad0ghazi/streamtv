@@ -269,6 +269,47 @@ d'ailleurs, et obligatoire si la console n'est pas encore passée au mot de pass
 de votre choix. Une seule surface sonde les sources, celle du site ; le port
 d'administration ne fait que lire.
 
+## 3 ter. Les clés d'API des films
+
+Les fiches de film peuvent afficher un complément venu de **TMDb** : note de la
+communauté, nombre de votes, durée officielle, genres et résumé en français.
+Le catalogue reste la source principale ; TMDb ne remplace jamais un titre, un
+synopsis ou une affiche, et son bloc porte toujours la mention d'attribution
+imposée par TMDb.
+
+**D'où viennent les clés.** Deux origines, la première prioritaire :
+
+1. `TMDB_API_KEY` (et `OMDB_API_KEY`) dans l'environnement : votre clé
+   personnelle, créée sur themoviedb.org, qui ne dépend de personne ;
+2. `data/cles-api.json`, produit par `npm run cles`, qui rassemble un pool de
+   clés publiques via le paquet de développement `freekeys`.
+
+```bash
+npm run cles                       # pool public de 12 clés TMDb et 12 OMDb
+node scripts/obtenir-cles.mjs --tmdb <votre-clé>   # clé personnelle, sans pool
+```
+
+**Ce que valent les clés publiques.** Elles sont codées en dur dans un paquet
+npm public : toute la communauté les utilise, leur débit est partagé et elles
+peuvent être révoquées sans préavis. Le serveur les essaie donc à la suite : une
+clé refusée (401) ou épuisée (429) laisse la place à la suivante. Quand toutes
+échouent, la fiche affiche une phrase qui dit quoi faire. Pour un usage sérieux,
+créez votre clé TMDb : c'est gratuit et cela prend deux minutes.
+
+**Ce qui est mis en cache.** Chaque fiche est gardée sept jours dans
+`data/cache-films.json`, ce qui évite de solliciter une clé partagée à chaque
+visite. Le fichier n'est pas versionné.
+
+**Ce qui n'est jamais fait.** Aucune affiche TMDb n'est reprise : ce sont des
+visuels promotionnels soumis à leurs propres conditions, alors que les affiches
+du catalogue sont sous licence libre. Aucune donnée n'est inventée : sans clé,
+sans réseau ou sans réponse exploitable, la fiche du catalogue s'affiche seule
+et une ligne explique pourquoi.
+
+**Où voir l'état.** Onglet **Films** de la console : nombre de clés par service,
+origine, nombre de fiches en cache et date du dernier relevé. Les valeurs des
+clés ne sortent jamais du serveur ; un test le vérifie.
+
 ## 4. Les sources
 
 ### Ajouter une source avec sa licence

@@ -21,6 +21,8 @@ import * as reglages from "./reglages.js";
 import * as audit from "./audit.js";
 import * as auth from "./auth.js";
 import * as sonde from "./sonde.js";
+import * as clesFilms from "./cles-films.js";
+import * as tmdb from "./tmdb.js";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = join(RACINE, "public");
@@ -397,6 +399,13 @@ export async function traiter(requete, reponse, options = {}) {
       return json(reponse, 200, reponseFilms(requete_)), true;
     }
 
+    if (chemin.startsWith("/api/films/") && chemin.endsWith("/tmdb") && methode === "GET") {
+      const film = ficheFilm(chemin.slice("/api/films/".length, -"/tmdb".length));
+      if (!film) return json(reponse, 404, { erreur: "Film introuvable." }), true;
+      const resultat = await tmdb.ficheFilm(film);
+      return json(reponse, 200, resultat), true;
+    }
+
     if (chemin.startsWith("/api/films/") && methode === "GET") {
       const fiche = ficheFilm(chemin.slice("/api/films/".length));
       return fiche ? json(reponse, 200, fiche) : json(reponse, 404, { erreur: "Film introuvable." }), true;
@@ -571,6 +580,11 @@ export async function traiter(requete, reponse, options = {}) {
     if (chemin === "/api/admin/audit" && methode === "GET") {
       if (!(await exigerSession(requete, reponse, "audit.lire", { accesLibre: accesLibre() }))) return true;
       return json(reponse, 200, { entrees: await audit.lire(200), codes: audit.CODES }), true;
+    }
+
+    if (chemin === "/api/admin/cles-films" && methode === "GET") {
+      if (!(await exigerSession(requete, reponse, "reglages.lire", { accesLibre: accesLibre() }))) return true;
+      return json(reponse, 200, { cles: await clesFilms.statut(), cache: await tmdb.etatCache(), attribution: tmdb.ATTRIBUTION }), true;
     }
 
     if (chemin === "/api/admin/statistiques" && methode === "GET") {

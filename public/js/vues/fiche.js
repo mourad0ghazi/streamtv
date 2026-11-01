@@ -36,6 +36,44 @@ function blocLicence(licence, source) {
   );
 }
 
+/**
+ * Bloc TMDb : un complément, jamais un remplacement.
+ *
+ * Le bloc n'apparaît que si TMDb a répondu quelque chose d'exploitable. Sinon,
+ * une ligne discrète dit pourquoi : pas de clé, serveur hors ligne, film
+ * inconnu de TMDb. Rien n'est inventé pour remplir la place, et la mention
+ * d'attribution imposée par TMDb accompagne toujours les données.
+ */
+export function blocTmdb(resultat) {
+  if (!resultat || !resultat.disponible) {
+    return h(
+      "p",
+      { class: "champ__aide" },
+      resultat?.raison ?? "Fiche TMDb indisponible pour le moment."
+    );
+  }
+  const fiche = resultat.fiche;
+  const precisions = [
+    fiche.note !== null ? `Note TMDb : ${String(fiche.note).replace(".", ",")} sur 10 (${fiche.votes} vote${fiche.votes > 1 ? "s" : ""})` : null,
+    fiche.dureeMinutes ? `Durée TMDb : ${formaterDuree(fiche.dureeMinutes * 60)}` : null,
+    fiche.genres?.length ? `Genres TMDb : ${fiche.genres.join(", ")}` : null
+  ].filter(Boolean);
+
+  return h(
+    "div",
+    { class: "bloc" },
+    h("div", { class: "bloc__titre" }, "Fiche TMDb"),
+    precisions.length ? h("ul", { class: "liste-simple" }, precisions.map((texte) => h("li", {}, texte))) : null,
+    fiche.resume ? h("p", { class: "fiche__synopsis" }, fiche.resume) : null,
+    h("p", { class: "licence" }, fiche.attribution ?? "Données TMDb."),
+    h(
+      "p",
+      { class: "champ__aide" },
+      `Relevé du ${new Date(fiche.releve).toLocaleDateString("fr-FR")}${resultat.cache ? ", servi depuis le cache local" : ""}.`
+    )
+  );
+}
+
 function afficheBloc(affiche, titre) {
   const bloc = h("div", { class: "fiche__affiche" });
   if (affiche) bloc.append(h("img", { src: affiche, alt: `Affiche de ${titre}`, width: 400, height: 600 }));
@@ -128,6 +166,9 @@ async function ficheFilm(racine, id, app) {
   }
   const reprise = progression.lire("films", film.id);
   const libelle = reprise ? `Reprendre à ${formaterPosition(reprise.position)}` : "Regarder";
+  // La fiche s'affiche tout de suite ; TMDb arrive après, et son absence ne
+  // retarde ni ne casse jamais la page.
+  const zoneTmdb = h("div", { class: "bloc-tmdb" }, h("p", { class: "champ__aide" }, "Recherche de la fiche TMDb"));
 
   vider(racine).append(
     h("a", { class: "lien", href: "/films", "data-lien": "" }, "Retour aux films"),
@@ -159,11 +200,16 @@ async function ficheFilm(racine, id, app) {
           boutonFavori({ famille: "films", id: film.id, titre: film.titre, lien: `/films/${film.id}` })
         ),
         h("p", { class: "fiche__synopsis" }, film.synopsis ?? "Synopsis à venir."),
-        blocLicence(film.licence, (film.sourcesDetail ?? []).map((s) => s.nom).join(", "))
+        blocLicence(film.licence, (film.sourcesDetail ?? []).map((s) => s.nom).join(", ")),
+        zoneTmdb
       )
     )
   );
   document.title = `${film.titre} · StreamTV`;
+
+  obtenir(`/api/films/${encodeURIComponent(film.id)}/tmdb`)
+    .then((resultat) => vider(zoneTmdb).append(blocTmdb(resultat)))
+    .catch(() => vider(zoneTmdb).append(blocTmdb(null)));
 }
 
 async function ficheAnime(racine, id, app) {
