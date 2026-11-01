@@ -53,7 +53,7 @@ test("la page d'accueil présente les trois entrées du catalogue", () => {
 
 test("l'accueil annonce les comptes réels du catalogue", () => {
   const contenu = texte(page);
-  assert.match(contenu, /1475 chaînes/);
+  assert.match(contenu, /8199 chaînes/);
   assert.match(contenu, /3 titres/);
   assert.match(contenu, /4 films/);
 });

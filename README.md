@@ -8,7 +8,7 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 
 ```bash
 npm start                 # http://127.0.0.1:3000
-npm test                  # 368 tests, lanceur intégré de Node
+npm test                  # 379 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
@@ -23,7 +23,7 @@ un avertissement tant que le mot de passe par défaut n'est pas changé.
 
 | Route       | Contenu                                                       |
 | ----------- | ------------------------------------------------------------- |
-| `/chaines`  | 1 475 chaînes, 18 catégories, pagination, guide de zapping     |
+| `/chaines`  | 8 199 chaînes, 18 catégories, 179 pays, filtre par région       |
 | `/anime`    | rangées d'animés, filtres partageables par URL, fiches         |
 | `/films`    | rangées de films, bouton unique de lecture, reprise à la seconde |
 | `/recherche`| les trois familles à la fois, type écrit en toutes lettres     |
@@ -39,8 +39,9 @@ du serveur et renouvelé toutes les dix minutes.
 Aucune donnée n'est inventée pour remplir une rangée.
 
 - **Chaînes** : index public [iptv-org](https://github.com/iptv-org/iptv), publié
-  sous licence Unlicense (domaine public), relevé le 1er novembre 2026. Le relevé
-  n'est pas versionné : voir la section « Reconstruire le catalogue ».
+  sous licence Unlicense (domaine public), relevé du 1er novembre 2026.
+  8 199 chaînes retenues sur 179 pays. Le relevé n'est pas versionné : voir la
+  section « Reconstruire le catalogue ».
 - **Films** : quatre films ouverts du Blender Institute (Sintel, Big Buck Bunny,
   Elephants Dream, Tears of Steel), sous Creative Commons Attribution, licence
   indiquée sur chaque fiche.
@@ -67,15 +68,39 @@ curl -L -o amont.tar.gz https://codeload.github.com/iptv-org/iptv/tar.gz/refs/he
 curl -L -o api.tar.gz  https://codeload.github.com/iptv-org/api/tar.gz/refs/heads/gh-pages
 mkdir -p amont/iptv-org && tar xzf api.tar.gz -C amont/iptv-org --strip-components=1
 
-# 2. produire data/sources.json et data/channels.json
-node scripts/importer.mjs --amont amont/iptv-org --max 1475
+# 2. produire data/sources.json, data/channels.json et data/playlists.json
+node scripts/importer.mjs --amont amont/iptv-org
+
+#    variante équilibrée : un maximum par pays
+node scripts/importer.mjs --amont amont/iptv-org --plafond-pays 30 --max 1475
+
+#    variante qui accepte les flux HTTP (voir l'avertissement ci-dessous)
+node scripts/importer.mjs --amont amont/iptv-org --autoriser-http
 
 # 3. regénérer les affiches de démonstration si besoin
 node scripts/affiches.mjs
 ```
 
-Le tourniquet par pays garantit qu'aucun pays ne remplit le catalogue à lui seul.
-Chaque chaîne produite porte son pays, sa langue, sa source et son adresse.
+Le tourniquet par pays garantit qu'aucun pays ne remplit le catalogue à lui seul
+quand un plafond est demandé. Chaque chaîne produite porte son pays, sa langue,
+sa source, son adresse, et sa subdivision quand sa zone de diffusion en déclare
+une.
+
+**HTTPS seulement, par défaut.** 8 199 des 9 593 chaînes exploitables passent le
+filtre HTTPS. Les 1 381 autres ne sont diffusées qu'en HTTP : un navigateur les
+bloque comme contenu mixte dès que le site est servi en HTTPS, donc elles
+n'entrent pas. L'option `--autoriser-http` les ajoute, mais elles ne liront que
+sur un site servi en HTTP, par exemple en local. C'est le cas de 2M, Al Maghribia
+et Arryadia, qui n'existent qu'en HTTP dans l'index : le Maroc passe de 9 à 6
+chaînes selon ce choix.
+
+**Les 515 playlists fournies.** `data/playlists-declarees.txt` contient la liste
+remise par le porteur du projet : 240 playlists de pays et 275 de subdivisions.
+L'import mesure, pour chacune, combien de chaînes du catalogue elle contient et
+écrit le résultat dans `data/playlists.json`. 272 playlists fournissent des
+contenus ; les 243 autres sont vides dans ce relevé, et l'onglet Sources de la
+console les liste nommément plutôt que de les passer sous silence. Le détail par
+pays est visible dans la console, le détail complet est dans le fichier.
 
 ## Publier la démonstration statique
 
@@ -100,7 +125,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        368 tests, lanceur intégré de Node
+tests/        379 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

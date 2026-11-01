@@ -10,11 +10,12 @@ import { CODES } from "../server/audit.js";
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const lire = async (nom) => JSON.parse(await readFile(join(RACINE, "data", nom), "utf8"));
 
-const [channels, anime, films, sources, doc] = await Promise.all([
+const [channels, anime, films, sources, playlists, doc] = await Promise.all([
   lire("channels.json"),
   lire("anime.json"),
   lire("films.json"),
   lire("sources.json"),
+  lire("playlists.json"),
   readFile(join(RACINE, "docs", "ADMINISTRATION.md"), "utf8")
 ]);
 
@@ -57,7 +58,7 @@ for (const categorie of [
     const membres = channels.contenus.filter((c) => c.categorie === categorie);
     assert.ok(membres.length > 0, `catégorie ${categorie} vide`);
     for (const chaine of membres) {
-      assert.match(chaine.id, /^ch-\d{4}$/);
+      assert.match(chaine.id, /^ch-\d{5}$/);
       assert.ok(chaine.nom.length > 0);
       assert.match(chaine.pays, /^[A-Z]{2}$/);
       assert.ok(chaine.url.startsWith("https://"));
@@ -145,3 +146,49 @@ for (const [code, action] of Object.entries(CODES)) {
     assert.ok(doc.includes(`| ${code} `), `code ${code} absent du tableau de la documentation`);
   });
 }
+
+/* ---------------------------------------------------------------- */
+/* Playlists déclarées par le porteur                                */
+/* ---------------------------------------------------------------- */
+
+test("la liste déclarée contient les 515 playlists fournies", () => {
+  assert.equal(playlists.total, 515);
+  assert.equal(playlists.playlists.length, 515);
+  const urls = new Set(playlists.playlists.map((p) => p.url));
+  assert.equal(urls.size, 515, "une adresse est présente deux fois");
+});
+
+test("chaque playlist déclarée pointe vers l'index iptv-org", () => {
+  for (const playlist of playlists.playlists) {
+    assert.match(playlist.url, /^https:\/\/iptv-org\.github\.io\/iptv\/(countries|subdivisions)\/[a-z0-9-]+\.m3u$/);
+  }
+});
+
+test("la couverture annonce les playlists vides au lieu de les cacher", () => {
+  const vides = playlists.playlists.filter((p) => p.contenus === 0);
+  const pleines = playlists.playlists.filter((p) => p.contenus > 0);
+  assert.equal(vides.length + pleines.length, 515);
+  assert.ok(pleines.length >= 180, `seulement ${pleines.length} playlists fournissent des contenus`);
+});
+
+test("le catalogue couvre chaque pays déclaré non vide", () => {
+  const paysCatalogue = new Set(channels.contenus.map((c) => c.pays));
+  const declaresVides = new Set(
+    playlists.playlists.filter((p) => p.portee === "pays" && p.contenus === 0).map((p) => p.code)
+  );
+  for (const playlist of playlists.playlists) {
+    if (playlist.portee !== "pays" || playlist.contenus === 0) continue;
+    assert.ok(paysCatalogue.has(playlist.code), `aucune chaîne pour ${playlist.libelle}`);
+    assert.ok(!declaresVides.has(playlist.code));
+  }
+});
+
+test("les chaines de subdivision portent leur région", () => {
+  const regions = new Set(channels.contenus.filter((c) => c.region).map((c) => c.region));
+  assert.ok(regions.size >= 50, `seulement ${regions.size} subdivisions représentées`);
+  for (const region of regions) assert.match(region, /^[A-Z]{2}-[A-Z0-9]+$/);
+});
+
+test("le catalogue dépasse les 8000 chaînes", () => {
+  assert.ok(channels.contenus.length >= 8000, `${channels.contenus.length} chaînes`);
+});

@@ -243,6 +243,22 @@ async function lireGuide() {
   };
 }
 
+/** Résumé de la couverture des playlists déclarées par le porteur. */
+async function resumePlaylists() {
+  try {
+    const bloc = JSON.parse(await readFile(join(DOSSIER_DONNEES, "playlists.json"), "utf8"));
+    const liste = Array.isArray(bloc.playlists) ? bloc.playlists : [];
+    return {
+      total: liste.length,
+      avecContenus: liste.filter((p) => p.contenus > 0).length,
+      vides: liste.filter((p) => p.contenus === 0).map((p) => ({ libelle: p.libelle, portee: p.portee, url: p.url }))
+    };
+  } catch (erreur) {
+    if (erreur.code !== "ENOENT") throw erreur;
+    return { total: 0, avecContenus: 0, vides: [] };
+  }
+}
+
 function statistiques() {
   const parSource = (famille) => {
     const comptes = {};
@@ -312,7 +328,7 @@ export async function traiter(requete, reponse) {
     }
 
     if (chemin === "/api/chaines/categories" && methode === "GET") {
-      return json(reponse, 200, { categories: categoriesChaines(), pays: paysChaines() }), true;
+      return json(reponse, 200, { categories: categoriesChaines(), pays: paysChaines(), regions: catalogue.regionsDe(contenus("chaines")) }), true;
     }
 
     if (chemin.startsWith("/api/chaines/") && methode === "GET") {
@@ -404,12 +420,23 @@ export async function traiter(requete, reponse) {
       if (!(await exigerSession(requete, reponse, "sources.lire"))) return true;
       const etats = await sonde.etats();
       const sourcess = instantane().sources.sources ?? [];
+      // Un contenu compte pour sa source, quelle que soit la famille : un film
+      // rattaché à une source de vidéo à la demande ne doit pas afficher zéro.
+      const comptes = new Map();
+      const ajouter = (id) => comptes.set(id, (comptes.get(id) ?? 0) + 1);
+      for (const c of contenus("chaines")) if (c.source) ajouter(c.source);
+      for (const famille of ["anime", "films"]) {
+        for (const c of contenus(famille)) {
+          for (const id of c.sources ?? []) ajouter(id);
+        }
+      }
       return json(reponse, 200, {
         sources: sourcess.map((s) => ({
           ...s,
           sonde: etats[s.id] ?? { etat: "inconnu", tauxEchec: null, dernierMs: null, date: null },
-          contenus: contenus("chaines").filter((c) => c.source === s.id).length
-        }))
+          contenus: comptes.get(s.id) ?? 0
+        })),
+        playlists: await resumePlaylists()
       }), true;
     }
 

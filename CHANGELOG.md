@@ -21,6 +21,13 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 - **Console** : deux onglets de plus (Animé, Films) avec leurs compteurs, onglet
   Sources étendu (état de sonde, priorité, licence éditable, import manuel), et
   un onglet Journal qui affiche le catalogue des codes d'audit.
+- **Catalogue élargi** : les 515 playlists fournies par le porteur (240 pays,
+  275 subdivisions) sont déclarées dans `data/playlists-declarees.txt`. Le
+  catalogue couvre leur union : 8 199 chaînes, 179 pays, 256 chaînes régionales,
+  18 catégories. 243 playlists sont vides dans le relevé courant et sont
+  listées nommément dans `data/playlists.json` et dans la console.
+- **Filtre par région** sur la page Chaînes, pour atteindre les chaînes des
+  playlists de subdivisions.
 - **Import** : une source sans licence est refusée avec un message français qui
   dit ce qui manque. Les doublons sont arbitrés par priorité et journalisés. Les
   entrées M3U qui imposent un référent ou un agent navigateur sont écartées.
@@ -48,16 +55,18 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 1. Sauvegardez `data/` en entier.
 2. Gardez `data/channels.json` tel quel : le format n'a pas changé.
-3. Créez `data/anime.json` et `data/films.json` avec l'enveloppe
+3. Recopiez `data/playlists-declarees.txt` et relancez l'import : il produit
+   `data/playlists.json`, la couverture playlist par playlist.
+4. Créez `data/anime.json` et `data/films.json` avec l'enveloppe
    `{ "version": 1, "date": "...", "contenus": [] }`. Un fichier absent est lu
    comme un catalogue vide, pas comme une erreur.
-4. Ajoutez à `data/sources.json` les sources de vidéo à la demande, avec les dix
+5. Ajoutez à `data/sources.json` les sources de vidéo à la demande, avec les dix
    champs et une licence. Sans licence, l'import refuse la source.
-5. Lancez `npm run versionner`, puis `npm test`, puis
+6. Lancez `npm run versionner`, puis `npm test`, puis
    `node scripts/verify.js --base http://127.0.0.1:3000`.
 
 ### Chiffres de cette version
 
-- 368 tests, tous passants, lanceur `node --test`.
-- 1 475 chaînes, 18 catégories, 179 pays, 180 sources déclarées.
+- 379 tests, tous passants, lanceur `node --test`.
+- 8 199 chaînes, 18 catégories, 179 pays, 180 sources déclarées, 515 playlists déclarées.
 - 3 animés, 4 films, tous sous licence affichée.

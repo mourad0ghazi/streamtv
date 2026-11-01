@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import * as catalogue from "../public/js/partage/catalogue.js";
 
 const chaines = [
-  { id: "ch-1", nom: "Médi 1 TV", categorie: "Information", pays: "MA" },
+  { id: "ch-1", nom: "Médi 1 TV", categorie: "Information", pays: "MA", region: "MA-01" },
   { id: "ch-2", nom: "2M", categorie: "Généraliste", pays: "MA" },
   { id: "ch-3", nom: "France 24", categorie: "Information", pays: "FR" },
   { id: "ch-4", nom: "Al Aoula", categorie: "Généraliste", pays: "MA" }
@@ -104,4 +104,14 @@ test("la recherche est plafonnée par le plafond de cartes", () => {
   const resultat = catalogue.rechercher({ chaines: beaucoup, anime: [], films: [] }, "sintel", 24);
   assert.equal(resultat.total, 40);
   assert.equal(resultat.resultats.length, 24);
+});
+
+test("le filtre des chaînes accepte une région", () => {
+  const trouvees = catalogue.filtrerChaines(chaines, { region: "MA-01" });
+  assert.deepEqual(trouvees.map((c) => c.id), ["ch-1"]);
+});
+
+test("les régions sont comptées et laissées de côté quand elles sont absentes", () => {
+  const regions = catalogue.regionsDe(chaines);
+  assert.deepEqual(regions, [{ code: "MA-01", nombre: 1 }]);
 });

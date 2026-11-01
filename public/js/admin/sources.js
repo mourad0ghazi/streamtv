@@ -3,7 +3,7 @@
  * import manuel avec retour d'état.
  */
 
-import { h, notifier } from "../dom.js";
+import { h, notifier, vider } from "../dom.js";
 import { obtenir, envoyer } from "../api.js";
 
 const ETATS = {
@@ -67,7 +67,27 @@ function ligneSource(source, rafraichir) {
 export async function panneauSources() {
   const donnees = await obtenir("/api/admin/sources");
   const sources = donnees.sources ?? [];
-  const tableau = h("tbody", {}, sources.slice(0, 200).map((s) => ligneSource(s, () => {})));
+  const playlists = donnees.playlists ?? { total: 0, avecContenus: 0, vides: [] };
+
+  const corps = h("tbody", {});
+  const dessiner = (filtre = "") => {
+    vider(corps);
+    const terme = filtre.trim().toLowerCase();
+    const retenues = sources.filter(
+      (s) => !terme || `${s.nom} ${s.id} ${s.pays}`.toLowerCase().includes(terme)
+    );
+    for (const source of retenues.slice(0, 120)) corps.append(ligneSource(source, () => {}));
+    if (!retenues.length) corps.append(h("tr", {}, h("td", { colspan: "6" }, "Aucune source ne correspond à ce filtre.")));
+  };
+  dessiner();
+
+  const filtre = h("input", {
+    type: "search",
+    id: "filtre-sources",
+    placeholder: "Nom, identifiant ou pays",
+    "aria-label": "Filtrer les sources",
+    oninput: (evenement) => dessiner(evenement.target.value)
+  });
 
   const sonder = h(
     "button",
@@ -102,6 +122,24 @@ export async function panneauSources() {
       sonder
     ),
     h(
+      "p",
+      { class: "page__chapeau" },
+      `${playlists.total} playlists déclarées, ${playlists.avecContenus} avec des contenus, ${playlists.vides.length} sans contenu dans le relevé courant.`
+    ),
+    playlists.vides.length
+      ? h(
+          "details",
+          {},
+          h("summary", {}, `Voir les ${playlists.vides.length} playlists sans contenu`),
+          h(
+            "ul",
+            {},
+            playlists.vides.map((p) => h("li", { class: "resultat__sous" }, `${p.libelle} · ${p.portee} · ${p.url}`))
+          )
+        )
+      : null,
+    h("div", { class: "champ", style: "max-width: 320px" }, h("label", { for: "filtre-sources" }, "Filtrer"), filtre),
+    h(
       "table",
       { class: "tableau" },
       h(
@@ -109,10 +147,10 @@ export async function panneauSources() {
         {},
         h("tr", {}, ["Source", "Licence", "Priorité", "Active", "Sonde", "Actions"].map((t) => h("th", {}, t)))
       ),
-      tableau
+      corps
     ),
-    sources.length > 200
-      ? h("p", { class: "page__chapeau" }, `Les ${sources.length - 200} autres sources sont gérées par l'import. Le tableau s'arrête à 200 lignes pour rester lisible.`)
+    sources.length > 120
+      ? h("p", { class: "page__chapeau" }, `Le tableau affiche 120 sources à la fois. Utilisez le filtre pour atteindre les autres.`)
       : null
   );
 }

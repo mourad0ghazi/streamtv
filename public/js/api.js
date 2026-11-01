@@ -68,7 +68,11 @@ function repondreStatique(cheminComplet, donnees) {
     return catalogue.paginer(catalogue.filtrerChaines(donnees.chaines, q), q.page, q.taille, plafond);
   }
   if (chemin === "/api/chaines/categories") {
-    return { categories: catalogue.categoriesDe(donnees.chaines), pays: catalogue.paysDe(donnees.chaines) };
+    return {
+      categories: catalogue.categoriesDe(donnees.chaines),
+      pays: catalogue.paysDe(donnees.chaines),
+      regions: catalogue.regionsDe(donnees.chaines)
+    };
   }
   if (chemin.startsWith("/api/chaines/")) {
     const chaine = donnees.chaines.find((c) => c.id === chemin.slice("/api/chaines/".length));

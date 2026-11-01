@@ -7,7 +7,7 @@ import { h, vider } from "../dom.js";
 import { obtenir } from "../api.js";
 import { carteChaine, attente, etatVide, etatErreur } from "../composants.js";
 
-function creerFiltres(etat, categories, pays, surChangement) {
+function creerFiltres(etat, categories, pays, regions, surChangement) {
   const champCategorie = h(
     "select",
     { id: "filtre-categorie", onchange: (e) => surChangement({ categorie: e.target.value, page: 1 }) },
@@ -19,6 +19,12 @@ function creerFiltres(etat, categories, pays, surChangement) {
     { id: "filtre-pays", onchange: (e) => surChangement({ pays: e.target.value, page: 1 }) },
     h("option", { value: "" }, "Tous les pays"),
     pays.slice(0, 60).map((p) => h("option", { value: p.code, selected: etat.pays === p.code ? true : null }, `${p.code} (${p.nombre})`))
+  );
+  const champRegion = h(
+    "select",
+    { id: "filtre-region", onchange: (e) => surChangement({ region: e.target.value, page: 1 }) },
+    h("option", { value: "" }, "Toutes les régions"),
+    regions.map((r) => h("option", { value: r.code, selected: etat.region === r.code ? true : null }, `${r.code} (${r.nombre})`))
   );
   const champRecherche = h("input", {
     id: "filtre-recherche",
@@ -33,13 +39,14 @@ function creerFiltres(etat, categories, pays, surChangement) {
     { class: "filtres", role: "search" },
     h("div", { class: "champ" }, h("label", { for: "filtre-categorie" }, "Catégorie"), champCategorie),
     h("div", { class: "champ" }, h("label", { for: "filtre-pays" }, "Pays"), champPays),
+    regions.length ? h("div", { class: "champ" }, h("label", { for: "filtre-region" }, "Région"), champRegion) : null,
     h("div", { class: "champ" }, h("label", { for: "filtre-recherche" }, "Recherche"), champRecherche),
     h(
       "button",
       {
         class: "bouton",
         type: "button",
-        onclick: () => surChangement({ categorie: "", pays: "", q: "", page: 1 })
+        onclick: () => surChangement({ categorie: "", pays: "", region: "", q: "", page: 1 })
       },
       "Réinitialiser"
     )
@@ -82,6 +89,7 @@ export async function rendre(racine, etat, app) {
   const parametres = new URLSearchParams();
   if (etat.categorie) parametres.set("categorie", etat.categorie);
   if (etat.pays) parametres.set("pays", etat.pays);
+  if (etat.region) parametres.set("region", etat.region);
   if (etat.q) parametres.set("q", etat.q);
   parametres.set("page", String(etat.page ?? 1));
 
@@ -113,7 +121,7 @@ export async function rendre(racine, etat, app) {
   );
 
   const contenu = h("div", {});
-  vider(racine).append(entete, creerFiltres(etat, meta.categories, meta.pays, aller));
+  vider(racine).append(entete, creerFiltres(etat, meta.categories, meta.pays, meta.regions ?? [], aller));
 
   if (guide && guide.disponible) {
     racine.insertBefore(creerGuide(guide.creneaux, guide.heure), contenu);
@@ -123,8 +131,8 @@ export async function rendre(racine, etat, app) {
     contenu.append(
       etatVide({
         titre: "Aucune chaîne ne correspond à ces filtres",
-        texte: "Réinitialise les filtres pour retrouver les 1475 chaînes du catalogue.",
-        action: () => aller({ categorie: "", pays: "", q: "", page: 1 }),
+        texte: "Réinitialise les filtres pour retrouver tout le catalogue.",
+        action: () => aller({ categorie: "", pays: "", region: "", q: "", page: 1 }),
         libelleAction: "Réinitialiser les filtres"
       })
     );

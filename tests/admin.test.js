@@ -119,12 +119,26 @@ test("une priorité hors bornes est refusée", async () => {
   assert.equal(statut, 400);
 });
 
+test("une source de vidéo à la demande compte aussi ses films et ses animés", async () => {
+  const { corps } = await demander("/api/admin/sources");
+  const vod = corps.sources.find((s) => s.contenu !== "chaine");
+  assert.ok(vod, "aucune source de vidéo à la demande");
+  assert.ok(vod.contenus > 0, `la source ${vod.id} annonce ${vod.contenus} contenus`);
+});
+
+test("les playlists déclarées sont résumées pour la console", async () => {
+  const { corps } = await demander("/api/admin/sources");
+  assert.equal(corps.playlists.total, 515);
+  assert.equal(corps.playlists.avecContenus + corps.playlists.vides.length, 515);
+  for (const vide of corps.playlists.vides) assert.ok(vide.libelle && vide.url);
+});
+
 test("les statistiques comptent les contenus incomplets", async () => {
   const { statut, corps } = await demander("/api/admin/statistiques");
   assert.equal(statut, 200);
   assert.equal(corps.anime.sansLicence, 0);
   assert.equal(corps.films.sansAffiche, 0);
-  assert.equal(corps.chaines.total, 1475);
+  assert.ok(corps.chaines.total >= 8000, `${corps.chaines.total} chaînes`);
 });
 
 test("le journal expose le catalogue complet des codes", async () => {

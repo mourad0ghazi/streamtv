@@ -47,7 +47,13 @@ d'audit ; le journal se vide uniquement à la main, et la procédure le décrit.
 famille de contenus, le nombre de contenus rattachés, leur licence, leur
 priorité, leur état d'activation et l'état de la sonde (saine, instable, hors
 service, jamais sondée) accompagné du taux d'échec sur les dix dernières
-mesures.
+mesures. Un encart compte les playlists déclarées en amont, celles qui
+fournissent des contenus et celles qui n'en fournissent pas ; la liste des
+secondes s'ouvre d'un clic, avec leur libellé et leur adresse.
+
+Un champ de filtre restreint le tableau par nom, identifiant ou pays. Le
+tableau affiche 120 sources à la fois : au-delà, c'est le filtre qui donne
+accès aux autres.
 
 **Ce qu'il permet.** Modifier la licence, changer la priorité, activer ou
 désactiver une source, lancer un import manuel pour une source ou pour toutes,
@@ -198,6 +204,21 @@ l'écran reste noir ; trop court, une source lente est abandonnée à tort.
    « Diffusion publique officielle, vérifiée le 2026-11-01 ».
 4. Lancez l'import. Sans licence, le serveur refuse et dit précisément ce qui
    manque.
+
+Deux filtres s'appliquent à l'import des chaînes. Les flux HTTP sont écartés
+parce qu'un navigateur les bloque sur un site servi en HTTPS ; l'option
+`--autoriser-http` de `scripts/importer.mjs` les rétablit pour un site servi en
+HTTP seulement. Les flux qui exigent un référent ou un agent navigateur sont
+écartés dans tous les cas : le navigateur ne peut pas les fournir pour une
+vidéo, et ce contournement signale un relais non officiel.
+
+Les 515 playlists de l'index iptv-org remises par le porteur sont déclarées
+dans `data/playlists-declarees.txt`, une par ligne, sous la forme
+« Libellé: adresse ». L'import lit ce fichier et écrit `data/playlists.json`,
+qui donne pour chaque playlist le nombre de chaînes du catalogue qu'elle
+contient. Les 243 playlists sans contenu y figurent nommément : elles
+correspondent à des territoires dont tous les flux sont en HTTP ou exigent un
+référent, ce qui les rend inutilisables dans un navigateur servi en HTTPS.
 
 Une liste de flux reprise en bloc n'est jamais importée telle quelle : chaque
 adresse se vérifie. Les entrées d'une liste M3U qui imposent un référent ou un

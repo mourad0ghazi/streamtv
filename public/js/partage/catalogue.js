@@ -45,11 +45,13 @@ export function paginer(liste, page, taille, plafond) {
 export function filtrerChaines(chaines, requete = {}) {
   const categorie = requete.categorie ?? "";
   const pays = requete.pays ?? "";
+  const region = requete.region ?? "";
   const q = requete.q ?? "";
   return chaines
     .filter((c) => (categorie ? c.categorie === categorie : true))
     .filter((c) => (pays ? c.pays === pays : true))
-    .filter((c) => (q ? contient(`${c.nom} ${c.categorie} ${c.pays}`, q) : true))
+    .filter((c) => (region ? c.region === region : true))
+    .filter((c) => (q ? contient(`${c.nom} ${c.categorie} ${c.pays} ${c.region ?? ""}`, q) : true))
     .sort((a, b) => comparerFr(a.nom, b.nom));
 }
 
@@ -59,6 +61,18 @@ export function categoriesDe(chaines) {
   return [...comptes.entries()]
     .map(([nom, nombre]) => ({ nom, nombre }))
     .sort((a, b) => comparerFr(a.nom, b.nom));
+}
+
+/** Subdivisions représentées dans le catalogue, avec leur nombre de chaînes. */
+export function regionsDe(chaines) {
+  const comptes = new Map();
+  for (const c of chaines) {
+    if (!c.region) continue;
+    comptes.set(c.region, (comptes.get(c.region) ?? 0) + 1);
+  }
+  return [...comptes.entries()]
+    .map(([code, nombre]) => ({ code, nombre }))
+    .sort((a, b) => a.code.localeCompare(b.code));
 }
 
 export function paysDe(chaines) {

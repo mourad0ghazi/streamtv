@@ -64,6 +64,15 @@ test("les catégories et les pays sont comptés", async () => {
   const somme = corps.categories.reduce((total, c) => total + c.nombre, 0);
   const { corps: page } = await lire("/api/chaines");
   assert.equal(somme, page.total);
+  assert.ok(corps.regions.length > 0, "aucune région déclarée");
+});
+
+test("le filtre par région réduit le catalogue aux chaînes régionales", async () => {
+  const { corps: meta } = await lire("/api/chaines/categories");
+  const region = meta.regions[0];
+  const { corps } = await lire(`/api/chaines?region=${encodeURIComponent(region.code)}`);
+  assert.equal(corps.total, region.nombre);
+  for (const chaine of corps.contenus) assert.equal(chaine.region, region.code);
 });
 
 test("une rangée vide d'animés n'est jamais renvoyée", async () => {
