@@ -5,9 +5,10 @@
 
 import { h, vider, formaterDuree, formaterPosition } from "../dom.js";
 import { obtenir } from "../api.js";
-import { attente, etatErreur, boutonLecture, meta } from "../composants.js";
+import { attente, etatErreur, boutonLecture, meta, carteChaine } from "../composants.js";
 import * as favoris from "../favoris.js";
 import * as progression from "../progression.js";
+import * as zapping from "../zapping.js";
 import { regarderVod, regarderChaine } from "../lecteur.js";
 
 function boutonFavori(favori, surChangement) {
@@ -51,8 +52,19 @@ async function ficheChaine(racine, id, app) {
     vider(racine).append(etatErreur(erreur.message, () => ficheChaine(racine, id, app)));
     return;
   }
-  const voisines = await obtenir(`/api/chaines?categorie=${encodeURIComponent(chaine.categorie)}&taille=40`).catch(() => ({ contenus: [] }));
-  const liste = voisines.contenus.length ? voisines.contenus : [chaine];
+  let liste = [chaine];
+  let infosListe = {};
+  try {
+    const donnees = await obtenir(`/api/chaines/zapping?categorie=${encodeURIComponent(chaine.categorie)}`);
+    if (donnees.chaines?.length) {
+      liste = donnees.chaines;
+      infosListe = { tronquee: donnees.tronquee === true, totalListe: donnees.total };
+    }
+  } catch {
+    /* le lecteur reste utilisable sur cette seule chaîne */
+  }
+  const position = liste.findIndex((c) => c.id === chaine.id);
+  const voisines = liste.filter((c) => c.id !== chaine.id).slice(0, 6);
 
   vider(racine).append(
     h("a", { class: "lien", href: "/chaines", "data-lien": "" }, "Retour aux chaînes"),
@@ -68,10 +80,37 @@ async function ficheChaine(racine, id, app) {
         h(
           "div",
           { class: "fiche__actions" },
-          boutonLecture("Regarder la chaîne", () => regarderChaine(chaine, liste, app.attenteSecondes)),
+          boutonLecture("Regarder la chaîne", () => {
+            zapping.memoriserChaine(chaine);
+            regarderChaine(chaine, {
+              liste,
+              index: position < 0 ? 0 : position,
+              attenteSecondes: app.attenteSecondes,
+              ...infosListe
+            });
+          }),
           boutonFavori({ famille: "chaines", id: chaine.id, titre: chaine.nom, lien: `/chaines/${chaine.id}` })
         ),
-        h("p", { class: "fiche__synopsis" }, "Diffusion en direct. En mode TV, les flèches haut et bas changent de chaîne."),
+        h(
+          "p",
+          { class: "fiche__synopsis" },
+          `Diffusion en direct. ${liste.length} chaînes de la catégorie ${chaine.categorie} s'enchaînent au clavier : flèche du bas pour la suivante, flèche du haut pour la précédente, L pour la liste.`
+        ),
+        voisines.length
+          ? h(
+              "div",
+              { class: "bloc" },
+              h("div", { class: "bloc__titre" }, `Aussi dans ${chaine.categorie}`),
+              h(
+                "div",
+                { class: "grille" },
+                voisines.map((v) => carteChaine(v, () => {
+                  zapping.memoriserChaine(v);
+                  regarderChaine(v, { liste, index: liste.findIndex((c) => c.id === v.id), attenteSecondes: app.attenteSecondes, ...infosListe });
+                }))
+              )
+            )
+          : null,
         blocLicence(chaine.licence, chaine.nomSource)
       )
     )

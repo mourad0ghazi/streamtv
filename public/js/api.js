@@ -67,6 +67,9 @@ function repondreStatique(cheminComplet, donnees) {
   if (chemin === "/api/chaines") {
     return catalogue.paginer(catalogue.filtrerChaines(donnees.chaines, q), q.page, q.taille, plafond);
   }
+  if (chemin === "/api/chaines/zapping") {
+    return catalogue.listeZapping(donnees.chaines, q, 300);
+  }
   if (chemin === "/api/chaines/categories") {
     return {
       categories: catalogue.categoriesDe(donnees.chaines),

@@ -107,6 +107,19 @@ test("les sources publiques n'exposent aucun secret", async () => {
   }
 });
 
+test("la liste de zapping est plafonnée et respecte les filtres", async () => {
+  const { corps } = await lire("/api/chaines/zapping?categorie=Information");
+  assert.ok(corps.chaines.length > 0);
+  assert.ok(corps.chaines.length <= 300);
+  assert.ok(corps.total >= corps.chaines.length, "le total annoncé ne peut pas être inférieur à la liste");
+  assert.equal(corps.tronquee, corps.total > corps.chaines.length);
+  for (const chaine of corps.chaines) {
+    assert.equal(chaine.categorie, "Information");
+    assert.ok(chaine.url.startsWith("https://"));
+    assert.equal("qualite" in chaine, false, "la liste de zapping transporte trop de champs");
+  }
+});
+
 test("la recherche répond et porte le type en toutes lettres", async () => {
   const { corps } = await lire("/api/recherche?q=sintel");
   assert.ok(corps.total >= 2);

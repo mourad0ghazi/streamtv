@@ -47,6 +47,35 @@ class Noeud {
     this.parent?.removeChild(this);
   }
 
+  replaceChildren(...elements) {
+    this.enfants = [];
+    this.append(...elements);
+  }
+
+  get classList() {
+    const noeud = this;
+    const liste = () => (noeud.className ?? "").split(/\s+/).filter(Boolean);
+    return {
+      add: (classe) => {
+        if (!liste().includes(classe)) noeud.className = [...liste(), classe].join(" ");
+      },
+      remove: (classe) => {
+        noeud.className = liste().filter((c) => c !== classe).join(" ");
+      },
+      contains: (classe) => liste().includes(classe)
+    };
+  }
+
+  /* `hidden` est reflété par l'attribut, comme dans un vrai navigateur. */
+  get hidden() {
+    return this.attributs.has("hidden");
+  }
+
+  set hidden(valeur) {
+    if (valeur) this.setAttribute("hidden", "");
+    else this.attributs.delete("hidden");
+  }
+
   setAttribute(cle, valeur) {
     this.attributs.set(cle, String(valeur));
     if (cle === "class") this.className = String(valeur);
@@ -98,9 +127,26 @@ class Noeud {
   }
 
   focus() {}
+
+  /* Doublures d'éléments média : le lecteur appelle ces méthodes. */
+  play() {
+    return Promise.resolve();
+  }
+
+  load() {}
+
+  canPlayType() {
+    return "probably";
+  }
+
+  requestFullscreen() {
+    return Promise.resolve();
+  }
 }
 
 const racineDocument = new Noeud("#document");
+
+const ecouteursDocument = new Map();
 
 globalThis.Node = Noeud;
 globalThis.document = {
@@ -123,8 +169,14 @@ globalThis.document = {
     return chercher(racineDocument) ?? new Noeud("div");
   },
   querySelectorAll: () => [],
-  addEventListener: () => {},
-  removeEventListener: () => {},
+  addEventListener: (type, rappel) => {
+    if (!ecouteursDocument.has(type)) ecouteursDocument.set(type, []);
+    ecouteursDocument.get(type).push(rappel);
+  },
+  removeEventListener: (type, rappel) => {
+    const liste = ecouteursDocument.get(type) ?? [];
+    ecouteursDocument.set(type, liste.filter((r) => r !== rappel));
+  },
   body: new Noeud("body"),
   head: new Noeud("head"),
   title: ""
@@ -144,6 +196,12 @@ globalThis.window = {
   addEventListener: () => {},
   scrollTo: () => {}
 };
+
+/** Déclenche un événement clavier sur le document simulé. */
+export function toucheDocument(touche) {
+  const evenement = { key: touche, preventDefault: () => {} };
+  for (const rappel of ecouteursDocument.get("keydown") ?? []) rappel(evenement);
+}
 
 /** Place un nœud à la racine du document simulé, pour que getElementById le trouve. */
 export function monter(noeud) {

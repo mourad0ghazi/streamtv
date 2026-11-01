@@ -321,22 +321,6 @@ code {
   min-width: 160px;
 }
 
-.etiquette {
-  display: inline-block;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--texte-faible);
-}
-
-.pastille-type {
-  font-size: 13px;
-  color: var(--texte-secondaire);
-  border: 1px solid var(--bordure);
-  border-radius: 999px;
-  padding: 0 var(--e2);
-}
-
 /* États : vide, erreur, attente. Toujours en français, toujours une issue. */
 
 .etat {

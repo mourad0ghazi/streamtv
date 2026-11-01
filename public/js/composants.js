@@ -34,11 +34,19 @@ export function carteChaine(chaine, action) {
     media.append(h("div", { class: "lettrine" }, initiales(chaine.nom)));
   }
   return h(
-    "button",
-    { type: "button", class: "carte carte--chaine carte-lien", onclick: () => action(chaine), "aria-label": `Regarder ${chaine.nom}` },
-    media,
-    h("div", { class: "carte__titre" }, chaine.nom),
-    h("div", { class: "carte__sous" }, `${chaine.categorie} · ${chaine.pays}`)
+    "article",
+    { class: "carte carte--chaine" },
+    h(
+      "button",
+      { type: "button", class: "carte-lien", onclick: () => action(chaine), "aria-label": `Regarder ${chaine.nom}` },
+      media,
+      h("div", { class: "carte__titre" }, chaine.nom)
+    ),
+    h(
+      "a",
+      { class: "carte__sous carte__sous--lien", href: `/chaines/${chaine.id}`, "data-lien": "" },
+      `${chaine.categorie} · ${chaine.pays} · fiche`
+    )
   );
 }
 

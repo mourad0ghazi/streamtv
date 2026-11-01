@@ -66,7 +66,12 @@ export const ICONES = {
   lecteur: '<path d="M8 5.5l9 5.5-9 5.5z"/>',
   retour: '<path d="M15 5l-7 7 7 7"/>',
   fermer: '<path d="M6 6l12 12M18 6L6 18"/>',
-  plein: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'
+  plein: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  haut: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  bas: '<path d="M12 5v14M5 12l7 7 7-7"/>',
+  liste: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  son: '<path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.5 5.5a9 9 0 010 13"/>',
+  muet: '<path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 9l5 6M21 9l-5 6"/>'
 };
 
 /** Icône en ligne, monochrome, à la taille du texte voisin. */

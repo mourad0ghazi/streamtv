@@ -18,6 +18,24 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
   rechargement de page, recherche globale plafonnée qui couvre les trois
   familles et écrit le type de chaque résultat en toutes lettres, favoris
   communs stockés localement.
+- **Expérience télé** : un clic sur une chaîne l'ouvre en lecture. Le lecteur
+  affiche le numéro de chaîne, passe à la précédente ou à la suivante en boucle
+  aux flèches, ouvre une liste de zapping recherchable avec `L`, coupe le son
+  avec `M`, passe en plein écran avec `F`, et accepte la saisie d'un numéro de
+  chaîne. La liste reprend les filtres de la page et se plafonne à 300 chaînes.
+  Au-delà de 300 chaînes dans le filtre courant, le panneau annonce le total
+  réel et sa troncature plutôt que de faire passer la borne pour un catalogue
+  entier.
+  Le son, la dernière chaîne et les douze dernières restent en mémoire locale ;
+  la page des chaînes rouvre sur un bandeau « Reprendre » et une rangée
+  « Récemment regardées ». La fiche d'une chaîne liste les autres chaînes de sa
+  catégorie, prêtes à regarder.
+- **Guide de zapping** : quand aucune source ne publie de grille, le bloc dit
+  précisément ce qui manque au lieu de disparaître ou d'afficher des
+  programmes inventés.
+- **Tri des chaînes** : la ponctuation de tête ne décide plus du rang, et les
+  chiffres se comparent comme des nombres ; la première page commence par les
+  noms numérotés au lieu de « ¡OPA! ».
 - **Console** : deux onglets de plus (Animé, Films) avec leurs compteurs, onglet
   Sources étendu (état de sonde, priorité, licence éditable, import manuel), et
   un onglet Journal qui affiche le catalogue des codes d'audit.
@@ -67,6 +85,6 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 ### Chiffres de cette version
 
-- 379 tests, tous passants, lanceur `node --test`.
+- 409 tests, tous passants, lanceur `node --test`.
 - 8 199 chaînes, 18 catégories, 179 pays, 180 sources déclarées, 515 playlists déclarées.
 - 3 animés, 4 films, tous sous licence affichée.

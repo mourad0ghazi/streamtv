@@ -3,7 +3,9 @@
  * Aucune section décorative : ce qui s'affiche sert à choisir quoi regarder.
  */
 
-import { h, vider, formaterPosition } from "../dom.js";
+import { h, vider, formaterPosition, initiales, icone } from "../dom.js";
+import { regarderChaine } from "../lecteur.js";
+import * as zapping from "../zapping.js";
 import { obtenir } from "../api.js";
 import { carteContenu, rangee, attente, etatErreur } from "../composants.js";
 import * as progression from "../progression.js";
@@ -51,6 +53,11 @@ export async function rendre(racine, _etat, app) {
 
   vider(racine).append(entete, entrees);
 
+  const derniere = zapping.derniereChaine();
+  if (derniere?.url) {
+    racine.append(blocDirect(derniere, app));
+  }
+
   const derniers = films.rangees?.[0];
   if (derniers?.contenus?.length) {
     const section = rangee("Ajoutés récemment", derniers.contenus, (film) =>
@@ -83,4 +90,46 @@ export async function rendre(racine, _etat, app) {
     );
     if (section) racine.append(section);
   }
+}
+
+/** Reprise du direct : la dernière chaîne regardée, relançable d'un clic. */
+function blocDirect(chaine, app) {
+  const media = h("div", { class: "reprise__logo" });
+  if (chaine.logo) {
+    const image = h("img", { src: chaine.logo, alt: `Logo de ${chaine.nom}`, loading: "lazy" });
+    image.addEventListener("error", () => {
+      image.remove();
+      media.append(h("span", { class: "lettrine" }, initiales(chaine.nom)));
+    });
+    media.append(image);
+  } else {
+    media.append(h("span", { class: "lettrine" }, initiales(chaine.nom)));
+  }
+
+  return h(
+    "section",
+    { class: "reprise", "aria-label": "Reprendre le direct" },
+    media,
+    h(
+      "div",
+      { class: "reprise__corps" },
+      h("span", { class: "reprise__titre" }, chaine.nom),
+      h("span", { class: "reprise__sous" }, "Dernière chaîne regardée. Le direct reprend là où vous l'avez laissé.")
+    ),
+    h(
+      "div",
+      { class: "reprise__actions" },
+      h(
+        "button",
+        {
+          class: "bouton bouton--principal",
+          type: "button",
+          onclick: () => regarderChaine(chaine, { liste: [chaine], index: 0, attenteSecondes: app.attenteSecondes })
+        },
+        icone("lecteur", 18),
+        "Reprendre le direct"
+      ),
+      h("a", { class: "bouton", href: "/chaines", "data-lien": "" }, "Voir les chaînes")
+    )
+  );
 }

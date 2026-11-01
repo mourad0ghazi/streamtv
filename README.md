@@ -8,7 +8,7 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 
 ```bash
 npm start                 # http://127.0.0.1:3000
-npm test                  # 379 tests, lanceur intégré de Node
+npm test                  # 409 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
@@ -28,6 +28,34 @@ un avertissement tant que le mot de passe par défaut n'est pas changé.
 | `/films`    | rangées de films, bouton unique de lecture, reprise à la seconde |
 | `/recherche`| les trois familles à la fois, type écrit en toutes lettres     |
 | `/favoris`  | liste locale, sans compte                                      |
+
+## Regarder la télévision
+
+Un clic sur une chaîne l'ouvre directement en lecture ; la ligne de description
+de la carte mène à sa fiche, où la licence est affichée.
+
+Le lecteur se conduit comme un téléviseur :
+
+| Touche | Effet |
+| ------ | ----- |
+| Flèche du bas, flèche du haut | chaîne suivante, chaîne précédente (la liste boucle) |
+| Chiffres, puis 1,2 seconde | numéro de chaîne dans la liste courante |
+| `L` | ouvrir ou fermer la liste des chaînes, avec sa recherche |
+| `M` | couper ou rétablir le son |
+| `F` | plein écran |
+| `Échap` | fermer la liste, puis le lecteur |
+
+La liste de zapping reprend les filtres de la page en cours : dans une
+catégorie, on zappe dans la catégorie ; sur un pays, dans le pays. Elle est
+plafonnée à 300 chaînes et servie par `/api/chaines/zapping`. Quand le filtre
+dépasse ce plafond, la liste l'écrit noir sur blanc (« 300 chaînes affichées sur
+1 012 ») au lieu de laisser croire qu'elle est complète.
+
+Le son, la dernière chaîne regardée et les douze dernières chaînes restent en
+mémoire locale (`streamtv.zapping.v1`), sans compte et sans envoi réseau. La page
+des chaînes rouvre sur un bandeau « Reprendre » et une rangée « Récemment
+regardées ». Quand une chaîne ne répond pas, le lecteur propose de réessayer,
+de passer à la suivante, d'ouvrir la liste, ou de revenir au catalogue.
 
 La console n'est pas à `/admin` : son adresse est le réglage `chemin_console`,
 par défaut `/console-f3a91c`. Quatre barrières la protègent : chemin privé, mot
@@ -125,7 +153,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        379 tests, lanceur intégré de Node
+tests/        409 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

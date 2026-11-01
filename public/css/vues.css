@@ -60,6 +60,19 @@
   color: var(--texte-secondaire);
 }
 
+/* La ligne de description mène à la fiche : la licence y est affichée. */
+.carte__sous--lien {
+  align-self: flex-start;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color var(--duree-survol) ease-out, border-color var(--duree-survol) ease-out;
+}
+
+.carte__sous--lien:hover {
+  color: var(--accent-clair);
+  border-bottom-color: var(--bordure-forte);
+}
+
 .carte:hover .carte__titre {
   color: var(--accent-clair);
 }
@@ -110,6 +123,62 @@
   overflow-x: auto;
   padding-bottom: var(--e2);
   scrollbar-width: thin;
+}
+
+/* Bandeau de reprise : la dernière chaîne regardée, avec son numéro. */
+
+.reprise {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: var(--e4);
+  margin-bottom: var(--e5);
+  background: var(--surface);
+}
+
+.reprise__logo {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  border-radius: var(--rayon);
+  border: 1px solid var(--bordure);
+  background: var(--surface-haute);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.reprise__logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.reprise__corps {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+}
+
+.reprise__titre {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.reprise__sous {
+  font-size: 13px;
+  color: var(--texte-secondaire);
+}
+
+.reprise__actions {
+  display: flex;
+  gap: var(--e2);
+  flex-wrap: wrap;
 }
 
 .pagination {
@@ -305,92 +374,6 @@
 .epingle[aria-pressed="true"] {
   border-color: var(--accent);
   color: var(--accent);
-}
-
-/* ---------------------------------------------------------------- */
-/* Lecteur                                                           */
-/* ---------------------------------------------------------------- */
-
-.lecteur {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: #000;
-  display: flex;
-  flex-direction: column;
-}
-
-.lecteur__barre {
-  display: flex;
-  align-items: center;
-  gap: var(--e3);
-  padding: var(--e3) var(--e4);
-  color: var(--texte);
-  background: var(--fond);
-  border-bottom: 1px solid var(--bordure);
-}
-
-.lecteur__titre {
-  font-size: 15px;
-  flex: 1;
-}
-
-.lecteur__scene {
-  flex: 1;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-}
-
-.lecteur__scene video {
-  width: 100%;
-  height: 100%;
-  max-height: 100%;
-  background: #000;
-}
-
-.lecteur__message {
-  position: absolute;
-  inset: auto var(--e4) var(--e4);
-  background: var(--surface);
-  border: 1px solid var(--bordure);
-  border-radius: var(--rayon);
-  padding: var(--e4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--e3);
-  max-width: 520px;
-}
-
-.lecteur__message p {
-  color: var(--texte-secondaire);
-  font-size: 14px;
-}
-
-.lecteur__actions {
-  display: flex;
-  gap: var(--e2);
-  flex-wrap: wrap;
-}
-
-.lecteur__indications {
-  position: absolute;
-  top: var(--e4);
-  left: var(--e4);
-  color: var(--texte-secondaire);
-  font-size: 13px;
-  background: var(--fond);
-  border: 1px solid var(--bordure);
-  border-radius: var(--rayon);
-  padding: var(--e1) var(--e3);
-  opacity: 0;
-  transition: opacity var(--e3) ease-out;
-}
-
-.lecteur__indications.visible {
-  opacity: 1;
 }
 
 /* ---------------------------------------------------------------- */
@@ -652,6 +635,10 @@
 
   .journal__ligne {
     grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .reprise {
+    flex-wrap: wrap;
   }
 
   .page {

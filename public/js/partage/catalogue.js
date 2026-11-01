@@ -23,8 +23,17 @@ export function contient(texte, terme) {
   return normaliser(texte).includes(t);
 }
 
+/**
+ * Comparaison à la française : casse et accents ignorés, ponctuation de tête
+ * ignorée (« ¡OPA! » se range à O, « +TV » à T), chiffres comparés comme des
+ * nombres (2M avant 10 TV).
+ */
+export function cleTri(valeur) {
+  return normaliser(valeur).replace(/^[^a-z0-9]+/, "");
+}
+
 export function comparerFr(a, b) {
-  return normaliser(a).localeCompare(normaliser(b), "fr");
+  return cleTri(a).localeCompare(cleTri(b), "fr", { numeric: true });
 }
 
 /** Pagination unique du site. `taille` ne dépasse jamais le plafond reçu. */
@@ -53,6 +62,28 @@ export function filtrerChaines(chaines, requete = {}) {
     .filter((c) => (region ? c.region === region : true))
     .filter((c) => (q ? contient(`${c.nom} ${c.categorie} ${c.pays} ${c.region ?? ""}`, q) : true))
     .sort((a, b) => comparerFr(a.nom, b.nom));
+}
+
+/**
+ * Liste de zapping : les chaînes filtrées, réduites à ce qu'il faut pour en
+ * changer pendant la lecture. Plafonnée pour rester légère à transporter.
+ */
+/**
+ * Liste de zapping d'un filtre. `total` compte les chaînes du filtre avant
+ * plafond, `tronquee` dit si la liste rendue est partielle : l'interface peut
+ * alors annoncer un nombre juste au lieu de laisser croire que le filtre
+ * s'arrête à la borne.
+ */
+export function listeZapping(chaines, requete = {}, limite = 300) {
+  const plafond = Math.max(1, Number(limite) || 300);
+  const retenues = filtrerChaines(chaines, requete);
+  return {
+    total: retenues.length,
+    tronquee: retenues.length > plafond,
+    chaines: retenues
+      .slice(0, plafond)
+      .map((c) => ({ id: c.id, nom: c.nom, url: c.url, categorie: c.categorie, pays: c.pays, logo: c.logo ?? "" }))
+  };
 }
 
 export function categoriesDe(chaines) {

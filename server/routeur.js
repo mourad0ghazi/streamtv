@@ -327,6 +327,11 @@ export async function traiter(requete, reponse) {
       return json(reponse, 200, page), true;
     }
 
+    if (chemin === "/api/chaines/zapping" && methode === "GET") {
+      const zapping = catalogue.listeZapping(contenus("chaines"), requete_, 300);
+      return json(reponse, 200, zapping), true;
+    }
+
     if (chemin === "/api/chaines/categories" && methode === "GET") {
       return json(reponse, 200, { categories: categoriesChaines(), pays: paysChaines(), regions: catalogue.regionsDe(contenus("chaines")) }), true;
     }

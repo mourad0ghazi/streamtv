@@ -329,6 +329,20 @@ autres sources. Si le catalogue doit être reconstruit, utilisez
 
 ## 7. Les pièges
 
+**Le lecteur et la mémoire locale.** Le son, la dernière chaîne regardée et les
+douze dernières vivent dans le stockage local du navigateur, sous la clé
+`streamtv.zapping.v1`. Vider les données du site les efface : ce n'est pas une
+panne. Aucune de ces valeurs ne remonte au serveur, et le journal d'audit n'en
+garde aucune trace.
+
+**La liste de zapping est plafonnée à 300 chaînes.** Un filtre très large, par
+exemple aucune catégorie et aucun pays, prend les 300 premières du tri
+alphabétique. Le panneau l'annonce alors explicitement, avec le total réel du
+filtre. Pour zapper dans un ensemble complet, filtrez d'abord par catégorie ou
+par pays : la liste reprend ce filtre, et reste entière tant qu'il compte moins
+de 300 chaînes.
+
+
 **Ce qui casse le site.** Une licence vidée à la main dans `data/sources.json`
 fait refuser l'import suivant. Un `data/sources.json` enregistré avec une
 accolade manquante empêche le démarrage : le serveur refuse de démarrer plutôt

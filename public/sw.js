@@ -16,6 +16,7 @@ const PRECACHE = [
   "/favoris",
   "/css/base.css?v=3.18.0",
   "/css/jetons.css?v=3.18.0",
+  "/css/lecteur.css?v=3.18.0",
   "/css/vues.css?v=3.18.0",
   "/js/admin/audit.js?v=3.18.0",
   "/js/admin/console.js?v=3.18.0",
@@ -38,6 +39,7 @@ const PRECACHE = [
   "/js/vues/fiche.js?v=3.18.0",
   "/js/vues/films.js?v=3.18.0",
   "/js/vues/recherche.js?v=3.18.0",
+  "/js/zapping.js?v=3.18.0",
   "/manifeste.webmanifest",
   "/icone.svg"
 ];

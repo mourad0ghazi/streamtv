@@ -38,6 +38,8 @@ const vueFiche = await import("../public/js/vues/fiche.js");
 const vueRecherche = await import("../public/js/vues/recherche.js");
 const vueFavoris = await import("../public/js/vues/favoris-vue.js");
 const progression = await import("../public/js/progression.js");
+const zapping = await import("../public/js/zapping.js");
+const catalogue = await import("../public/js/partage/catalogue.js");
 
 test("la vue Chaînes rend au plus le plafond de cartes", async () => {
   const racine = new Noeud("main");
@@ -147,4 +149,51 @@ test("chaque résultat de recherche porte son type en toutes lettres", async () 
   const types = parClasse(racine, "resultat__type").map((t) => texte(t));
   assert.ok(types.includes("Animé"));
   assert.ok(types.includes("Film"));
+});
+
+test("une carte de chaîne propose deux actions : regarder et voir la fiche", () => {
+  const racine = new Noeud("main");
+  return vueChaines.rendre(racine, {}, app).then(() => {
+    const cartes = parClasse(racine, "carte");
+    const premiere = cartes[0];
+    const bouton = parBalise(premiere, "button")[0];
+    const lien = parBalise(premiere, "a")[0];
+    assert.match(bouton.getAttribute("aria-label"), /Regarder/);
+    assert.match(lien.getAttribute("href"), /^\/chaines\/ch-/);
+    assert.match(texte(lien), /fiche/);
+  });
+});
+
+test("le guide dit son absence de grille au lieu de rester vide", async () => {
+  const racine = new Noeud("main");
+  await vueChaines.rendre(racine, {}, app);
+  const guide = parClasse(racine, "guide")[0];
+  assert.ok(guide, "aucun bloc guide");
+  assert.match(texte(guide), /Aucune grille disponible/);
+  assert.match(texte(guide), /programmes ne sont pas fournis/);
+});
+
+test("le bandeau de reprise apparaît dès qu'une chaîne a été regardée", async () => {
+  localStorage.clear();
+  const premiere = catalogue.filtrerChaines(channels.contenus, {})[0];
+  zapping.memoriserChaine({ id: premiere.id, nom: premiere.nom, categorie: premiere.categorie, url: premiere.url, logo: "" });
+  const racine = new Noeud("main");
+  await vueChaines.rendre(racine, {}, app);
+  const reprise = parClasse(racine, "reprise")[0];
+  assert.ok(reprise, "aucun bandeau de reprise");
+  assert.match(texte(reprise), /Reprendre/);
+  assert.match(texte(reprise), new RegExp(premiere.nom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(texte(reprise), /Chaîne 1 sur 24/);
+  zapping.oublierChaine(premiere.id);
+});
+
+test("les chaînes récemment regardées forment une rangée", async () => {
+  localStorage.clear();
+  const recente = catalogue.filtrerChaines(channels.contenus, {})[0];
+  zapping.memoriserChaine({ id: recente.id, nom: recente.nom, categorie: recente.categorie, url: recente.url, logo: "" });
+  const racine = new Noeud("main");
+  await vueChaines.rendre(racine, {}, app);
+  const rangees = parClasse(racine, "rangee").map((r) => r.getAttribute("data-rangee"));
+  assert.ok(rangees.includes("Récemment regardées"));
+  zapping.oublierChaine(recente.id);
 });

@@ -115,3 +115,25 @@ test("les régions sont comptées et laissées de côté quand elles sont absent
   const regions = catalogue.regionsDe(chaines);
   assert.deepEqual(regions, [{ code: "MA-01", nombre: 1 }]);
 });
+
+test("la liste de zapping est réduite aux champs utiles et plafonnée", () => {
+  const liste = catalogue.listeZapping(chaines, {}, 2);
+  assert.equal(liste.chaines.length, 2);
+  assert.deepEqual(Object.keys(liste.chaines[0]).sort(), ["categorie", "id", "logo", "nom", "pays", "url"]);
+});
+
+test("la liste de zapping annonce le total réel du filtre et sa troncature", () => {
+  const coupee = catalogue.listeZapping(chaines, {}, 2);
+  assert.equal(coupee.total, chaines.length);
+  assert.equal(coupee.tronquee, true);
+
+  const entiere = catalogue.listeZapping(chaines, {}, 300);
+  assert.equal(entiere.total, chaines.length);
+  assert.equal(entiere.tronquee, false);
+});
+
+test("la liste de zapping applique les mêmes filtres que le catalogue", () => {
+  const liste = catalogue.listeZapping(chaines, { categorie: "Information" }, 300);
+  assert.deepEqual(liste.chaines.map((c) => c.id), ["ch-3", "ch-1"]);
+  assert.equal(liste.total, 2);
+});
