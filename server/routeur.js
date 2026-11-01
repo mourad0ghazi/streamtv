@@ -45,6 +45,29 @@ function json(reponse, code, charge, entetes = {}) {
   reponse.end(corps);
 }
 
+/**
+ * Jeton de session, quel que soit son transport.
+ *
+ * Le cookie `stv_session` reste la voie normale. Mais un site affiché dans un
+ * cadre venu d'un autre domaine (l'aperçu de l'atelier, par exemple) ne reçoit
+ * jamais un cookie `SameSite=Strict` : la session est créée puis ignorée, et la
+ * console redemande le mot de passe en boucle. Le même jeton est donc accepté
+ * dans un en-tête `authorization: Bearer …`, que le cadre transmet sans
+ * discussion. Un seul jeton, deux transports, aucune session au rabais.
+ */
+function jetonSession(requete) {
+  const entete = requete.headers.authorization ?? "";
+  if (entete.startsWith("Bearer ")) return entete.slice(7).trim();
+  return lireCookies(requete).stv_session ?? "";
+}
+
+/** Jeton d'appareil : verrou posé au premier code accepté. */
+function jetonAppareil(requete) {
+  const direct = requete.headers["x-stv-appareil"];
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  return lireCookies(requete).stv_appareil ?? "";
+}
+
 function lireCookies(requete) {
   const brut = requete.headers.cookie ?? "";
   const resultat = {};
@@ -216,7 +239,7 @@ async function signaler(famille, id) {
 /* ------------------------------------------------------------------ */
 
 async function exigerSession(requete, reponse, permission) {
-  const session = auth.verifierSession(lireCookies(requete).stv_session);
+  const session = auth.verifierSession(jetonSession(requete));
   if (!session) {
     json(reponse, 401, { erreur: "Session absente ou expirée. Reconnectez-vous." });
     return null;
@@ -394,7 +417,7 @@ export async function traiter(requete, reponse) {
       const resultat = await auth.connexion({
         motDePasse: corps.motDePasse,
         code: corps.code,
-        jetonAppareil: lireCookies(requete).stv_appareil,
+        jetonAppareil: jetonAppareil(requete),
         dureeMinutes: reglages.valeur("duree_session_minutes"),
         codeRequis: reglages.valeur("code_verification") === true
       });
@@ -411,16 +434,23 @@ export async function traiter(requete, reponse) {
       if (resultat.jetonAppareil) {
         entetes.push("stv_appareil=" + resultat.jetonAppareil + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000");
       }
-      return json(reponse, 200, { role: "administrateur" }, { "set-cookie": entetes }), true;
+      // Le jeton part aussi dans le corps : un cadre d'un autre domaine ne
+      // garde pas le cookie, mais il garde la réponse.
+      return json(
+        reponse,
+        200,
+        { role: "administrateur", jeton: resultat.jeton, jetonAppareil: resultat.jetonAppareil ?? null },
+        { "set-cookie": entetes }
+      ), true;
     }
 
     if (chemin === "/api/admin/deconnexion" && methode === "POST") {
-      auth.deconnexion(lireCookies(requete).stv_session);
+      auth.deconnexion(jetonSession(requete));
       return json(reponse, 200, { ok: true }, { "set-cookie": ["stv_session=; Path=/; Max-Age=0"] }), true;
     }
 
     if (chemin === "/api/admin/session" && methode === "GET") {
-      const session = auth.verifierSession(lireCookies(requete).stv_session);
+      const session = auth.verifierSession(jetonSession(requete));
       return json(reponse, 200, {
         connecte: Boolean(session),
         role: session?.role ?? null,

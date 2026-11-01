@@ -1,5 +1,31 @@
 # Journal des versions
 
+## 3.20.0, 1er novembre 2026
+
+### Ce qui change
+
+- **Connexion qui aboutit dans un cadre.** Le mot de passe était accepté, la
+  session créée, puis oubliée : le cookie `SameSite=Strict` n'est jamais renvoyé
+  quand la page vit dans un cadre d'un autre domaine, ce qui est le cas de
+  l'aperçu. Le jeton de session est désormais aussi renvoyé dans le corps de la
+  réponse, gardé par la page et présenté dans un en-tête `authorization`. Le
+  cookie reste utilisé hors cadre, et reste `HttpOnly`. Le verrou d'appareil
+  suit le même chemin (`x-stv-appareil`).
+- **Stockage tolérant.** `localStorage` refusé dans un cadre tiers, ou absent :
+  le jeton vit en mémoire, la connexion aboutit quand même.
+- **Session morte effacée.** Un 401 sur une route d'administration vide le
+  stockage du jeton, au lieu de le renvoyer indéfiniment.
+
+### Ce qui casse
+
+- La réponse de `POST /api/admin/connexion` contient deux champs de plus,
+  `jeton` et `jetonAppareil`. Aucun client existant ne les lisait.
+- `GET /api/etat` annonce `3.20.0`.
+
+### Chiffres de cette version
+
+- 459 tests, tous passants, lanceur `node --test`.
+
 ## 3.19.0, 1er novembre 2026
 
 ### Ce qui change

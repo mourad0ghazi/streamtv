@@ -19,7 +19,7 @@ function chargerHls() {
   if (hlsCharge) return hlsCharge;
   hlsCharge = new Promise((resoudre, rejeter) => {
     const script = document.createElement("script");
-    script.src = "/vendor/hls.js?v=3.19.0";
+    script.src = "/vendor/hls.js?v=3.20.0";
     script.onload = () => (window.Hls ? resoudre(window.Hls) : rejeter(new Error("hls.js absent")));
     script.onerror = () => rejeter(new Error("hls.js illisible"));
     document.head.append(script);

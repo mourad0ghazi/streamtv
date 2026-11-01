@@ -5,7 +5,7 @@
  */
 
 import { h, vider, notifier } from "../dom.js";
-import { obtenir, envoyer, ErreurApi } from "../api.js";
+import { obtenir, envoyer, ErreurApi, memoriserSession, oublierSession } from "../api.js";
 import { ONGLETS, ROLES } from "./onglets.js";
 import { panneauSources } from "./sources.js";
 import { panneauStatistiques } from "./statistiques.js";
@@ -71,7 +71,10 @@ function formulaireConnexion(message, options = {}) {
     bouton.disabled = true;
     aide.textContent = "";
     try {
-      await envoyer("/api/admin/connexion", { motDePasse: motDePasse.value, code: code ? code.value.trim() : "" });
+      const reponse = await envoyer("/api/admin/connexion", { motDePasse: motDePasse.value, code: code ? code.value.trim() : "" });
+      // Le jeton reste hors du cookie : dans un cadre d'un autre domaine, le
+      // cookie `SameSite=Strict` n'est jamais renvoyé et la console bouclait.
+      memoriserSession(reponse);
       motDePasse.value = "";
       await demarrer();
     } catch (erreur) {
@@ -141,6 +144,7 @@ async function afficher() {
         type: "button",
         onclick: async () => {
           await envoyer("/api/admin/deconnexion", {}).catch(() => {});
+          oublierSession();
           await demarrer();
         }
       },

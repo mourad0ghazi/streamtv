@@ -12,6 +12,83 @@ import { avecBase } from "./partage/base.js";
 
 const DELAI_MS = 12000;
 
+/**
+ * Jeton de session de la console, gardé hors des cookies.
+ *
+ * Un cookie `SameSite=Strict` n'est pas renvoyé quand la page vit dans un cadre
+ * d'un autre domaine : la console redemandait alors le mot de passe en boucle.
+ * Le jeton vit donc en mémoire et dans `sessionStorage` (donc effacé à la
+ * fermeture de l'onglet), et repart dans un en-tête `authorization`. Le cookie
+ * reste posé en parallèle : hors cadre, c'est lui qui sert, et il est HttpOnly.
+ */
+const CLE_JETON = "streamtv.session.v1";
+const CLE_APPAREIL = "streamtv.appareil.v1";
+let jetonMemoire = null;
+
+/**
+ * Stockage tolérant. Un navigateur peut refuser `localStorage` dans un cadre
+ * tiers, ou lever à la première lecture : ce n'est pas une raison pour empêcher
+ * une connexion. En cas de refus, le jeton ne vit qu'en mémoire, et la page
+ * redemandera le mot de passe après rechargement, rien de plus.
+ */
+function essayer(action) {
+  try {
+    return action();
+  } catch {
+    return null;
+  }
+}
+
+function lireStockage(cle) {
+  for (const type of ["sessionStorage", "localStorage"]) {
+    const valeur = essayer(() => globalThis[type]?.getItem(cle));
+    if (valeur) return valeur;
+  }
+  return null;
+}
+
+function ecrireStockage(cle, valeur, persistant) {
+  const zones = persistant ? ["localStorage", "sessionStorage"] : ["sessionStorage", "localStorage"];
+  for (const type of zones) essayer(() => globalThis[type]?.setItem(cle, valeur));
+}
+
+function effacerStockage(cle) {
+  for (const type of ["sessionStorage", "localStorage"]) essayer(() => globalThis[type]?.removeItem(cle));
+}
+
+/** À appeler après une connexion réussie. */
+export function memoriserSession({ jeton, jetonAppareil } = {}) {
+  if (jeton) {
+    jetonMemoire = jeton;
+    ecrireStockage(CLE_JETON, jeton, false);
+  }
+  if (jetonAppareil) ecrireStockage(CLE_APPAREIL, jetonAppareil, true);
+}
+
+/** À appeler à la déconnexion, et quand le serveur dit que la session est morte. */
+export function oublierSession() {
+  jetonMemoire = null;
+  effacerStockage(CLE_JETON);
+}
+
+export function jetonCourant() {
+  return jetonMemoire ?? lireStockage(CLE_JETON);
+}
+
+function jetonAppareil() {
+  return lireStockage(CLE_APPAREIL);
+}
+
+/** En-têtes d'authentification, seulement quand un jeton existe. */
+function entetesAuth() {
+  const entetes = {};
+  const jeton = jetonCourant();
+  if (jeton) entetes.authorization = `Bearer ${jeton}`;
+  const appareil = jetonAppareil();
+  if (appareil) entetes["x-stv-appareil"] = appareil;
+  return entetes;
+}
+
 export class ErreurApi extends Error {
   constructor(message, code) {
     super(message);
@@ -149,15 +226,20 @@ async function demander(chemin, options = {}) {
   const controleur = new AbortController();
   const minuteur = setTimeout(() => controleur.abort(), options.delai ?? DELAI_MS);
   try {
+    const entetes = { ...entetesAuth(), ...(options.entetes ?? {}) };
+    if (options.corps) entetes["content-type"] = "application/json";
     const reponse = await fetch(chemin, {
       method: options.methode ?? "GET",
-      headers: options.corps ? { "content-type": "application/json" } : undefined,
+      headers: entetes,
       body: options.corps ? JSON.stringify(options.corps) : undefined,
       credentials: "same-origin",
       signal: controleur.signal
     });
     const type = reponse.headers.get("content-type") ?? "";
     const charge = type.includes("application/json") ? await reponse.json() : await reponse.text();
+    // Une session expirée ne doit pas rester dans le stockage : sinon chaque
+    // appel suivant repart avec un jeton mort et la console boucle.
+    if (reponse.status === 401 && chemin.startsWith("/api/admin/") && !chemin.endsWith("/connexion")) oublierSession();
     if (!reponse.ok) {
       const message = typeof charge === "object" && charge?.erreur ? charge.erreur : `Le serveur a répondu ${reponse.status}.`;
       throw new ErreurApi(message, reponse.status);

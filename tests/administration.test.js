@@ -114,6 +114,18 @@ test("une tentative de connexion avec le mauvais mot de passe est refusée sur l
   assert.ok(corps.erreur?.length > 10, "le refus doit être expliqué en français");
 });
 
+test("le client garde le jeton hors des cookies et l'envoie en en-tête", async () => {
+  const source = await (await demander(baseAdmin, "/js/api.js")).text();
+  assert.match(source, /authorization = `Bearer \$\{jeton\}`/, "l'en-tête authorization doit être posé");
+  assert.match(source, /x-stv-appareil/, "le verrou d'appareil doit suivre le même chemin");
+  assert.match(source, /sessionStorage/, "le jeton doit survivre à un rechargement d'onglet");
+  assert.match(source, /oublierSession/, "une session expirée doit être effacée du stockage");
+
+  const console_ = await (await demander(baseAdmin, "/js/admin/console.js")).text();
+  assert.match(console_, /memoriserSession\(reponse\)/, "la console doit garder le jeton de la réponse");
+  assert.match(console_, /oublierSession\(\)/, "la déconnexion doit effacer le jeton");
+});
+
 test("le formulaire de connexion ne demande que le mot de passe quand le code n'est pas requis", async () => {
   const reponse = await demander(baseAdmin, "/api/admin/session");
   const etat = await reponse.json();
@@ -154,4 +166,56 @@ test("le site complet reste la surface par défaut de creerServeur", async () =>
   assert.equal(reponse.status, 200);
   const racine = await demander(baseSite, "/");
   assert.equal(racine.status, 200, "la racine du site ne redirige pas");
+});
+
+test("le jeton de session fonctionne aussi dans un en-tête, sans cookie", async () => {
+  const connexion = await fetch(`${baseAdmin}/api/admin/connexion`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ motDePasse: "streamtv" })
+  });
+  assert.equal(connexion.status, 200);
+  const { jeton } = await connexion.json();
+  assert.ok(jeton && jeton.length >= 32, "le jeton doit être renvoyé dans le corps, pour un cadre tiers");
+
+  // Sans cookie, avec l'en-tête seul : c'est le cas d'une console affichée
+  // dans un cadre venu d'un autre domaine.
+  const session = await fetch(`${baseAdmin}/api/admin/session`, { headers: { authorization: `Bearer ${jeton}` } });
+  assert.equal((await session.json()).connecte, true);
+
+  const sources = await fetch(`${baseAdmin}/api/admin/sources`, { headers: { authorization: `Bearer ${jeton}` } });
+  assert.equal(sources.status, 200);
+
+  const sansRien = await fetch(`${baseAdmin}/api/admin/sources`);
+  assert.equal(sansRien.status, 401, "sans jeton ni cookie, l'accès reste fermé");
+
+  const faux = await fetch(`${baseAdmin}/api/admin/sources`, { headers: { authorization: "Bearer jeton-invente" } });
+  assert.equal(faux.status, 401, "un jeton inventé ne vaut rien");
+});
+
+test("la déconnexion invalide le jeton, même porté en en-tête", async () => {
+  const connexion = await fetch(`${baseAdmin}/api/admin/connexion`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ motDePasse: "streamtv" })
+  });
+  const { jeton } = await connexion.json();
+
+  const sortie = await fetch(`${baseAdmin}/api/admin/deconnexion`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${jeton}`, "content-type": "application/json" },
+    body: "{}"
+  });
+  assert.equal(sortie.status, 200);
+
+  const apres = await fetch(`${baseAdmin}/api/admin/session`, { headers: { authorization: `Bearer ${jeton}` } });
+  assert.equal((await apres.json()).connecte, false, "un jeton déconnecté ne doit plus rien ouvrir");
+});
+
+test("un stockage refusé n'empêche pas de se connecter", async () => {
+  const source = await (await demander(baseAdmin, "/js/api.js")).text();
+  assert.match(source, /function essayer\(action\)/, "les accès au stockage doivent être protégés");
+  assert.match(source, /catch \{\s*return null;\s*\}/, "un refus de stockage doit être absorbé");
+  assert.match(source, /jetonMemoire/, "le jeton doit vivre en mémoire même sans stockage");
+  assert.match(source, /globalThis\[type\]\?\.setItem/, "l'écriture doit tolérer un stockage absent");
 });

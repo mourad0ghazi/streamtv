@@ -230,6 +230,17 @@ normalement, sinon la page serait nue.
 secret du code de vérification : un appareil déjà reconnu sur un port ne
 redemande pas le code sur l'autre, et le code affiché est le même des deux côtés.
 
+**Session dans un cadre.** Quand la console est affichée dans un cadre venu
+d'un autre domaine, un navigateur ne renvoie jamais le cookie `SameSite=Strict` :
+la session était créée puis ignorée, et le formulaire revenait sans explication.
+Le jeton de session est donc aussi renvoyé dans la réponse de connexion, gardé
+par la page (`sessionStorage`, et en mémoire si le stockage est refusé), puis
+présenté dans un en-tête `authorization: Bearer …`. Le cookie reste posé et
+reste prioritaire hors cadre, avec son `HttpOnly`. Le jeton d'appareil suit le
+même chemin, dans l'en-tête `x-stv-appareil`. Un stockage refusé ne bloque
+jamais la connexion : on perd seulement la reconnexion automatique après
+rechargement.
+
 **Ce qui ne l'est pas.** Les sessions vivent en mémoire, une par processus. Se
 connecter sur 3002 n'ouvre pas 3000, et réciproquement : c'est voulu, une
 session de console ne circule pas d'une surface à l'autre. Fermer un processus
