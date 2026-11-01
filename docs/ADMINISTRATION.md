@@ -95,7 +95,7 @@ ensuite.
 
 ### Onglet Réglages {#onglet-reglages}
 
-**Ce qu'il montre.** Les huit réglages du site, chacun avec son libellé, son
+**Ce qu'il montre.** Les neuf réglages du site, chacun avec son libellé, son
 effet visible et son risque, plus le formulaire de changement de mot de passe.
 
 **Ce qu'il permet.** Modifier un réglage, une valeur à la fois ou plusieurs à la
@@ -187,6 +187,21 @@ Type : booléen. Défaut : faux.
 Effet visible : affiche en haut de chaque page un bandeau qui annonce une
 lecture seule. Risque : activé sur le site réel, il annonce à tort une lecture
 seule. La construction statique l'active d'elle-même.
+
+### Code de vérification sur un nouvel appareil {#reglage-code-verification}
+
+Type : booléen. Défaut : faux. Valeurs : vrai ou faux.
+
+Effet visible : à faux, **le mot de passe seul** ouvre la console, et le
+formulaire n'affiche aucun champ de code. À vrai, un appareil inconnu doit en
+plus recopier les six chiffres affichés sur la sortie du serveur, renouvelés
+toutes les dix minutes.
+
+Risque si mal réglé : à faux, quiconque connaît le mot de passe entre, depuis
+n'importe quelle machine, sans avoir besoin d'être devant le serveur. C'est un
+choix de simplicité ; pour une console exposée sur Internet, remettez-le à vrai.
+Le mot de passe reste obligatoire dans les deux cas, et le verrou d'appareil
+continue d'enregistrer les machines déjà vues.
 
 ### Attente maximale du lecteur {#reglage-attente-lecteur}
 

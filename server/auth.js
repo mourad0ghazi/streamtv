@@ -107,7 +107,7 @@ async function enregistrerAppareil(jeton) {
  * Vérifie les identifiants. Renvoie {ok, raison, jeton, jetonAppareil}.
  * `raison` est un code court, traduit en français par l'interface.
  */
-export async function connexion({ motDePasse, code, jetonAppareil, dureeMinutes }) {
+export async function connexion({ motDePasse, code, jetonAppareil, dureeMinutes, codeRequis = true }) {
   await initialiser();
   const connu = appareilConnu(jetonAppareil);
 
@@ -115,7 +115,10 @@ export async function connexion({ motDePasse, code, jetonAppareil, dureeMinutes 
     return { ok: false, raison: "mot-de-passe" };
   }
 
-  if (!connu) {
+  // Le code de vérification est une barrière de plus, pas une condition du mot
+  // de passe : le réglage `code_verification` peut la retirer, le mot de passe
+  // reste obligatoire dans tous les cas.
+  if (!connu && codeRequis) {
     if (String(code ?? "").trim() !== codeVerification()) {
       return { ok: false, raison: "code" };
     }

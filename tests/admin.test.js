@@ -34,12 +34,43 @@ async function demander(chemin, options = {}) {
   return { statut: reponse.status, corps };
 }
 
-test("la connexion échoue sans le code de vérification", async () => {
-  const { statut } = await demander("/api/admin/connexion", {
+test("un mauvais mot de passe est refusé, même sans code demandé", async () => {
+  const { statut, corps } = await demander("/api/admin/connexion", {
     method: "POST",
-    body: JSON.stringify({ motDePasse: auth.MOT_DE_PASSE_PAR_DEFAUT, code: "000000" })
+    body: JSON.stringify({ motDePasse: "ce-n-est-pas-le-mot-de-passe" })
   });
   assert.equal(statut, 401);
+  assert.match(corps.erreur, /Mot de passe incorrect/);
+});
+
+test("le mot de passe seul ouvre une session quand le code n'est pas demandé", async () => {
+  const { statut, corps } = await demander("/api/admin/connexion", {
+    method: "POST",
+    body: JSON.stringify({ motDePasse: auth.MOT_DE_PASSE_PAR_DEFAUT })
+  });
+  assert.equal(statut, 200);
+  assert.equal(corps.role, "administrateur");
+  assert.ok(cookie.startsWith("stv_session="));
+});
+
+test("quand le code est demandé, le mot de passe seul ne suffit plus", async () => {
+  await reglages.modifier({ code_verification: true });
+  try {
+    const sansCode = await demander("/api/admin/connexion", {
+      method: "POST",
+      body: JSON.stringify({ motDePasse: auth.MOT_DE_PASSE_PAR_DEFAUT })
+    });
+    assert.equal(sansCode.statut, 401);
+    assert.match(sansCode.corps.erreur, /Code de vérification/);
+
+    const avecCode = await demander("/api/admin/connexion", {
+      method: "POST",
+      body: JSON.stringify({ motDePasse: auth.MOT_DE_PASSE_PAR_DEFAUT, code: auth.codeVerification() })
+    });
+    assert.equal(avecCode.statut, 200);
+  } finally {
+    await reglages.modifier({ code_verification: false });
+  }
 });
 
 test("la connexion avec mot de passe et code ouvre une session", async () => {
@@ -62,7 +93,7 @@ test("la session ouverte donne accès à la liste des sources", async () => {
 test("la session ouverte donne accès aux réglages et à leur description", async () => {
   const { statut, corps } = await demander("/api/admin/reglages");
   assert.equal(statut, 200);
-  assert.equal(corps.description.length, 8);
+  assert.equal(corps.description.length, 9);
   assert.ok(corps.valeurs.plafond_cartes > 0);
 });
 

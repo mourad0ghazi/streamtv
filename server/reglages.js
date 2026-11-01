@@ -13,7 +13,7 @@ import { DOSSIER_DONNEES, ecrireAtomique } from "./magasin.js";
 export const FICHIER = join(DOSSIER_DONNEES, "reglages.json");
 
 /**
- * Les huit réglages du site. `verifier` renvoie null si la valeur convient,
+ * Les neuf réglages du site. `verifier` renvoie null si la valeur convient,
  * sinon un message français qui dit ce qui ne va pas.
  */
 export const DESCRIPTION = [
@@ -110,6 +110,18 @@ export const DESCRIPTION = [
     doc: "reglage-bandeau-demo",
     effet: "Affiche le bandeau de lecture seule sur chaque page.",
     risque: "Activé sur le site réel, il annonce à tort une lecture seule.",
+    verifier(v) {
+      return typeof v === "boolean" ? null : "La valeur doit être vrai ou faux.";
+    }
+  },
+  {
+    cle: "code_verification",
+    libelle: "Code de vérification sur un nouvel appareil",
+    type: "booleen",
+    defaut: false,
+    doc: "reglage-code-verification",
+    effet: "Désactivé, le mot de passe suffit à entrer dans la console.",
+    risque: "Activé, un appareil inconnu doit aussi recopier le code affiché par le serveur : c'est une barrière de plus contre un mot de passe éventé, mais il faut être devant la sortie du serveur.",
     verifier(v) {
       return typeof v === "boolean" ? null : "La valeur doit être vrai ou faux.";
     }

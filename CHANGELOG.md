@@ -6,6 +6,13 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 ### Ce qui change
 
+- **Connexion à la console** : le mot de passe seul suffit. Le code de
+  vérification sur un nouvel appareil devient un réglage, `code_verification`,
+  désactivé par défaut ; quand il est actif, le champ correspondant réapparaît
+  dans le formulaire, sinon il n'y figure plus. Le mot de passe reste
+  obligatoire dans les deux cas, et le verrou d'appareil continue d'enregistrer
+  les machines déjà vues.
+
 - **Animé** : nouvelle route `/anime`, trois rangées (« Simulcast de la saison »,
   « Classiques », « Films d'animation »), quatre filtres combinables dans l'URL
   (genre, année, langue, statut), fiche avec liste d'épisodes et reprise de
@@ -65,6 +72,8 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
   et donnerait des pages blanches en ligne. Chaque route a son dossier pour
   qu'un accès direct réponde 200, et `scripts/verifier-publication.mjs` contrôle
   l'adresse publiée en treize points.
+- **Réglages** : ils passent de huit à neuf. Toute documentation citant huit
+  est fausse.
 - **Port d'administration** : `npm run admin` démarre le serveur sur le port
   3002 avec une surface dédiée. Elle sert la console, ses ressources et l'API,
   jamais une page du catalogue ; sa racine renvoie vers le chemin privé de la
@@ -116,6 +125,6 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 ### Chiffres de cette version
 
-- 446 tests, tous passants, lanceur `node --test`.
+- 451 tests, tous passants, lanceur `node --test`.
 - 8 199 chaînes, 18 catégories, 179 pays, 180 sources déclarées, 515 playlists déclarées.
 - 3 animés, 4 films, tous sous licence affichée.

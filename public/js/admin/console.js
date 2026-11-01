@@ -26,9 +26,17 @@ function lienDocumentation(ancre) {
 /* Connexion                                                           */
 /* ------------------------------------------------------------------ */
 
-function formulaireConnexion(message) {
+/**
+ * Formulaire de connexion. Le code de vérification n'apparaît que si le
+ * réglage `code_verification` le demande : sinon, le mot de passe seul suffit,
+ * et le champ ne doit pas laisser croire qu'il est obligatoire.
+ */
+function formulaireConnexion(message, options = {}) {
+  const codeRequis = options.codeRequis === true;
   const motDePasse = h("input", { type: "password", id: "mot-de-passe", autocomplete: "current-password", required: true });
-  const code = h("input", { type: "text", id: "code", inputmode: "numeric", autocomplete: "one-time-code", maxlength: 6, placeholder: "123456" });
+  const code = codeRequis
+    ? h("input", { type: "text", id: "code", inputmode: "numeric", autocomplete: "one-time-code", maxlength: 6, placeholder: "123456" })
+    : null;
   const aide = h("p", { class: "aide-message", role: "alert" });
   const bouton = h("button", { class: "bouton bouton--principal", type: "submit" }, "Entrer dans la console");
 
@@ -36,15 +44,23 @@ function formulaireConnexion(message) {
     "form",
     { class: "etat", style: "max-width: 480px" },
     h("h1", {}, "Console d'administration"),
-    h("p", {}, "Renseignez le mot de passe. Sur un appareil non reconnu, le code de vérification affiché par le serveur est aussi demandé."),
-    h("div", { class: "champ" }, h("label", { for: "mot-de-passe" }, "Mot de passe"), motDePasse),
     h(
-      "div",
-      { class: "champ" },
-      h("label", { for: "code" }, "Code de vérification (nouvel appareil)"),
-      code,
-      h("span", { class: "champ__aide" }, "Six chiffres, affichés sur la sortie du serveur ; ils changent toutes les dix minutes.")
+      "p",
+      {},
+      codeRequis
+        ? "Renseignez le mot de passe. Sur un appareil non reconnu, le code de vérification affiché par le serveur est aussi demandé."
+        : "Renseignez le mot de passe pour entrer."
     ),
+    h("div", { class: "champ" }, h("label", { for: "mot-de-passe" }, "Mot de passe"), motDePasse),
+    codeRequis
+      ? h(
+          "div",
+          { class: "champ" },
+          h("label", { for: "code" }, "Code de vérification (nouvel appareil)"),
+          code,
+          h("span", { class: "champ__aide" }, "Six chiffres, affichés sur la sortie du serveur ; ils changent toutes les dix minutes.")
+        )
+      : null,
     message ? h("p", { class: "champ__aide" }, message) : null,
     aide,
     h("div", {}, bouton)
@@ -55,7 +71,7 @@ function formulaireConnexion(message) {
     bouton.disabled = true;
     aide.textContent = "";
     try {
-      await envoyer("/api/admin/connexion", { motDePasse: motDePasse.value, code: code.value.trim() });
+      await envoyer("/api/admin/connexion", { motDePasse: motDePasse.value, code: code ? code.value.trim() : "" });
       motDePasse.value = "";
       await demarrer();
     } catch (erreur) {
@@ -149,7 +165,7 @@ async function demarrer() {
   try {
     etat = await obtenir("/api/admin/session");
   } catch (erreur) {
-    vider(RACINE).append(formulaireConnexion(erreur instanceof ErreurApi ? erreur.message : null));
+    vider(RACINE).append(formulaireConnexion(erreur instanceof ErreurApi ? erreur.message : null, { codeRequis: false }));
     return;
   }
   if (!etat.connecte) {
@@ -158,7 +174,10 @@ async function demarrer() {
       h(
         "div",
         { class: "console" },
-        formulaireConnexion(etat.motDePasseParDefaut ? "Le mot de passe par défaut est encore actif. Changez-le depuis l'onglet Réglages dès la première connexion." : null)
+        formulaireConnexion(
+          etat.motDePasseParDefaut ? "Le mot de passe par défaut est encore actif. Changez-le depuis l'onglet Réglages dès la première connexion." : null,
+          { codeRequis: etat.codeRequis === true }
+        )
       )
     );
     return;

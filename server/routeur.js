@@ -388,7 +388,8 @@ export async function traiter(requete, reponse) {
         motDePasse: corps.motDePasse,
         code: corps.code,
         jetonAppareil: lireCookies(requete).stv_appareil,
-        dureeMinutes: reglages.valeur("duree_session_minutes")
+        dureeMinutes: reglages.valeur("duree_session_minutes"),
+        codeRequis: reglages.valeur("code_verification") === true
       });
       if (!resultat.ok) {
         await audit.journaliser("A02", { raison: resultat.raison }, "visiteur");
@@ -417,7 +418,8 @@ export async function traiter(requete, reponse) {
         connecte: Boolean(session),
         role: session?.role ?? null,
         permissions: session ? auth.permissions(session.role) : [],
-        motDePasseParDefaut: auth.motDePasseParDefaut()
+        motDePasseParDefaut: auth.motDePasseParDefaut(),
+        codeRequis: reglages.valeur("code_verification") === true
       }), true;
     }
 

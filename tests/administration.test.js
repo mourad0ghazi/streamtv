@@ -18,6 +18,7 @@ let site;
 let baseAdmin;
 let baseSite;
 let cheminConsole;
+let cookieSession = null;
 
 before(async () => {
   await charger();
@@ -111,6 +112,41 @@ test("une tentative de connexion avec le mauvais mot de passe est refusée sur l
   assert.ok(reponse.status === 401 || reponse.status === 403, `attendu 401 ou 403, reçu ${reponse.status}`);
   const corps = await reponse.json();
   assert.ok(corps.erreur?.length > 10, "le refus doit être expliqué en français");
+});
+
+test("le formulaire de connexion ne demande que le mot de passe quand le code n'est pas requis", async () => {
+  const reponse = await demander(baseAdmin, "/api/admin/session");
+  const etat = await reponse.json();
+  assert.equal(etat.codeRequis, false, "le code doit être facultatif par défaut");
+
+  const page = await (await demander(baseAdmin, cheminConsole)).text();
+  const source = await (await demander(baseAdmin, "/js/admin/console.js")).text();
+  assert.match(source, /etat\.codeRequis === true/, "le formulaire doit suivre le réglage du serveur");
+  assert.match(source, /Renseignez le mot de passe pour entrer\./);
+  assert.ok(page.includes("/js/admin/console.js"), "la console doit charger son module");
+});
+
+test("le mot de passe seul ouvre la session, et les réglages annoncent le code facultatif", async () => {
+  const connexion = await fetch(`${baseAdmin}/api/admin/connexion`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ motDePasse: "streamtv" })
+  });
+  assert.equal(connexion.status, 200, "le mot de passe seul doit suffire quand le code est désactivé");
+  cookieSession = (connexion.headers.get("set-cookie") ?? "").split(";")[0] || null;
+  assert.ok(cookieSession?.startsWith("stv_session="));
+
+  const reponse = await demander(baseAdmin, "/api/admin/reglages", { headers: { cookie: cookieSession } });
+  assert.equal(reponse.status, 200);
+  const { corps } = { corps: await reponse.json() };
+  assert.equal(corps.valeurs.code_verification, false);
+  const description = corps.description.find((d) => d.cle === "code_verification");
+  assert.ok(description, "le réglage doit être décrit au serveur");
+  assert.equal(description.type, "booleen");
+  assert.equal(description.doc, "reglage-code-verification");
+
+  const ferme = await demander(baseAdmin, "/api/admin/reglages");
+  assert.equal(ferme.status, 401, "sans cookie, les réglages restent fermés");
 });
 
 test("le site complet reste la surface par défaut de creerServeur", async () => {

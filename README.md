@@ -9,7 +9,7 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 ```bash
 npm start                 # http://127.0.0.1:3000   le site
 npm run admin             # http://127.0.0.1:3002   l'administration seule
-npm test                  # 446 tests, lanceur intégré de Node
+npm test                  # 451 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
@@ -69,9 +69,13 @@ fait depuis `app.js`, donc sans script en ligne, et son échec est silencieux :
 un navigateur qui refuse le service worker affiche quand même le site.
 
 La console n'est pas à `/admin` : son adresse est le réglage `chemin_console`,
-par défaut `/console-f3a91c`. Quatre barrières la protègent : chemin privé, mot
-de passe (scrypt), verrou d'appareil, code de vérification affiché sur la sortie
-du serveur et renouvelé toutes les dix minutes.
+par défaut `/console-f3a91c`. Trois barrières la protègent toujours : chemin
+privé, mot de passe (scrypt), verrou d'appareil. La quatrième, le code de
+vérification affiché sur la sortie du serveur, est **désactivée par défaut** :
+le mot de passe seul ouvre la console. Le réglage `code_verification` la remet
+en service, ce qui est recommandé dès que la console est joignable depuis
+Internet ; le champ n'apparaît alors dans le formulaire que si le serveur le
+demande.
 
 **Un port pour l'administration.** `npm run admin` démarre une surface dédiée
 sur le port 3002. Elle sert la console, ses ressources et l'API, jamais une page
@@ -209,7 +213,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        446 tests, lanceur intégré de Node
+tests/        451 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul
