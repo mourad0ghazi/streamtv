@@ -51,6 +51,44 @@ test("les en-têtes n'interdisent pas la prévisualisation encadrée", async () 
   assert.equal(entetes.get("x-content-type-options"), "nosniff");
 });
 
+test("un script n'est jamais figé pour un an dans le navigateur", async () => {
+  for (const chemin of ["/js/app.js", "/js/admin/console.js", "/css/base.css", "/js/partage/base.js"]) {
+    const { entetes } = await lire(chemin);
+    const cache = entetes.get("cache-control") ?? "";
+    assert.match(cache, /no-cache/, `${chemin} devrait être revalidé à chaque visite`);
+    assert.equal(/immutable/.test(cache), false, `${chemin} ne doit pas être immuable sans changement d'adresse`);
+    assert.ok(entetes.get("etag"), `${chemin} sans ETag : la revalidation coûterait le fichier entier`);
+  }
+});
+
+test("un fichier inchangé répond 304, un fichier changé répond 200", async () => {
+  const premier = await lire("/js/app.js");
+  const etag = premier.entetes.get("etag");
+  assert.ok(etag);
+
+  const inchange = await fetch(`${base}/js/app.js`, { headers: { "if-none-match": etag } });
+  assert.equal(inchange.status, 304, "un ETag identique doit donner 304");
+  assert.equal((await inchange.text()).length, 0, "un 304 ne transporte pas de corps");
+
+  const autre = await fetch(`${base}/js/app.js`, { headers: { "if-none-match": '"perime"' } });
+  assert.equal(autre.status, 200, "un ETag périmé doit renvoyer le fichier");
+});
+
+test("seul le dossier vendor est marqué immuable", async () => {
+  const { entetes } = await lire("/vendor/hls.js");
+  assert.match(entetes.get("cache-control") ?? "", /immutable/);
+});
+
+test("la version annoncée par le serveur est celle du paquet", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { join, dirname } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const racine = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const { version } = JSON.parse(await readFile(join(racine, "package.json"), "utf8"));
+  const { corps } = await lire("/api/etat");
+  assert.equal(corps.version, version);
+});
+
 test("une page inconnue reste une erreur, pas une coquille", async () => {
   const { statut } = await lire("/favoris-de-lecture");
   assert.equal(statut, 404);

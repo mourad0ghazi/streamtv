@@ -25,6 +25,13 @@ import * as sonde from "./sonde.js";
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = join(RACINE, "public");
 
+/**
+ * Version du paquet, lue une fois. Le serveur ne la recopie pas : une version
+ * écrite deux fois finit toujours par diverger de l'autre.
+ */
+const PAQUET = JSON.parse(await readFile(join(RACINE, "package.json"), "utf8"));
+export const VERSION = PAQUET.version;
+
 const TAILLE_CORPS_MAX = 64 * 1024;
 
 function json(reponse, code, charge, entetes = {}) {
@@ -308,7 +315,7 @@ export async function traiter(requete, reponse) {
     if (chemin === "/api/etat" && methode === "GET") {
       const plafond = reglages.valeur("plafond_cartes");
       return json(reponse, 200, {
-        version: "3.18.0",
+        version: VERSION,
         date: instantane().chaines.date,
         plafondCartes: plafond,
         compte: {

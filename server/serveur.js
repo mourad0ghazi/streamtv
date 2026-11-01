@@ -14,7 +14,7 @@ import { charger } from "./magasin.js";
 import * as reglages from "./reglages.js";
 import * as auth from "./auth.js";
 import * as sonde from "./sonde.js";
-import { traiter, PUBLIC } from "./routeur.js";
+import { traiter, PUBLIC, VERSION } from "./routeur.js";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -81,15 +81,30 @@ function envoyer(reponse, code, type, corps, entetes = {}) {
   reponse.end(corps);
 }
 
-async function servirFichier(reponse, chemin, { immuable = false, type } = {}) {
+/**
+ * Sert un fichier avec un ETag et la revalidation qui va avec.
+ *
+ * Seul `/vendor/` est marqué immuable : hls.js ne change pas sans changer de
+ * nom. Tout le reste (scripts, styles, affiches) est servi en `no-cache` : le
+ * navigateur redemande, le serveur répond 304 si rien n'a bougé. Une version
+ * oubliée ne peut donc plus figer un ancien script chez un visiteur, ce qui
+ * arrivait avec `immutable` sur une adresse inchangée.
+ */
+async function servirFichier(requete, reponse, chemin, { immuable = false, type } = {}) {
   try {
     const info = await stat(chemin);
     if (!info.isFile()) return false;
+    const etag = `"${info.size.toString(36)}-${Math.floor(info.mtimeMs).toString(36)}"`;
+    const cache = immuable ? "public, max-age=31536000, immutable" : "no-cache";
+
+    if (requete && requete.headers?.["if-none-match"] === etag) {
+      reponse.writeHead(304, { etag, "cache-control": cache, ...ENTETES_SECURITE });
+      reponse.end();
+      return true;
+    }
+
     const corps = await readFile(chemin);
-    envoyer(reponse, 200, type ?? TYPES[extname(chemin)] ?? "application/octet-stream", corps, {
-      "cache-control": immuable ? "public, max-age=31536000, immutable" : "no-cache",
-      etag: `"${info.size.toString(36)}-${Math.floor(info.mtimeMs).toString(36)}"`
-    });
+    envoyer(reponse, 200, type ?? TYPES[extname(chemin)] ?? "application/octet-stream", corps, { "cache-control": cache, etag });
     return true;
   } catch {
     return false;
@@ -128,17 +143,17 @@ export function creerServeur(options = {}) {
       }
       if (chemin === cheminConsole || chemin === `${cheminConsole}/`) {
         const fichier = join(PUBLIC, "console.html");
-        if (await servirFichier(reponse, fichier)) return;
+        if (await servirFichier(requete, reponse, fichier)) return;
       }
 
       // La documentation que la console cite depuis chacun de ses onglets.
       if (chemin === "/docs/ADMINISTRATION.md") {
-        if (await servirFichier(reponse, join(RACINE, "docs", "ADMINISTRATION.md"), { type: "text/markdown; charset=utf-8" })) return;
+        if (await servirFichier(requete, reponse, join(RACINE, "docs", "ADMINISTRATION.md"), { type: "text/markdown; charset=utf-8" })) return;
       }
 
       if (!administration && PAGES.some((motif) => motif.test(chemin))) {
         const fichier = join(PUBLIC, "index.html");
-        if (await servirFichier(reponse, fichier)) return;
+        if (await servirFichier(requete, reponse, fichier)) return;
       }
 
       const relatif = normalize(chemin).replace(/^(\.\.[/\\])+/, "").replace(/^[/\\]+/, "");
@@ -147,8 +162,8 @@ export function creerServeur(options = {}) {
       const autorisee = !administration || RESOURCES_ADMIN.some((prefixe) => chemin.startsWith(prefixe));
       if (relatif && !relatif.startsWith("..") && autorisee) {
         const absolu = join(PUBLIC, relatif);
-        const immuable = ["/js/", "/css/", "/affiches/", "/vendor/"].some((prefixe) => chemin.startsWith(prefixe));
-        if (absolu.startsWith(PUBLIC) && (await servirFichier(reponse, absolu, { immuable }))) return;
+        const immuable = chemin.startsWith("/vendor/");
+        if (absolu.startsWith(PUBLIC) && (await servirFichier(requete, reponse, absolu, { immuable }))) return;
       }
 
       if (chemin.startsWith("/api/")) {
@@ -171,7 +186,7 @@ const RESOURCES_ADMIN = ["/js/", "/css/", "/affiches/", "/vendor/", "/icone.svg"
 
 function pageAdministrationIntrouvable(chemin, cheminConsole) {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Port d'administration</title>
-<link rel="stylesheet" href="/css/base.css?v=3.18.0"></head>
+<link rel="stylesheet" href="/css/base.css?v=${VERSION}"></head>
 <body><main class="page"><h1>Ce port sert l'administration</h1>
 <p>L'adresse <code>${chemin.replace(/[<>&"]/g, "")}</code> n'existe pas ici. Le catalogue se trouve sur le port du site.</p>
 <p><a class="lien" href="${cheminConsole}">Ouvrir la console d'administration</a></p></main></body></html>`;
@@ -179,7 +194,7 @@ function pageAdministrationIntrouvable(chemin, cheminConsole) {
 
 function pageIntrouvable(chemin) {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Page introuvable</title>
-<link rel="stylesheet" href="/css/base.css?v=3.18.0"></head>
+<link rel="stylesheet" href="/css/base.css?v=${VERSION}"></head>
 <body><main class="page"><h1>Cette page n'existe pas</h1>
 <p>L'adresse <code>${chemin.replace(/[<>&"]/g, "")}</code> ne correspond à aucune page de StreamTV.</p>
 <p><a class="lien" href="/">Revenir au catalogue</a></p></main></body></html>`;

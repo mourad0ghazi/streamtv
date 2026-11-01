@@ -28,7 +28,8 @@ test("la construction statique produit une page d'accueil", async () => {
   assert.equal(await existe("index.html"), true);
   const html = await readFile(join(SITE, "index.html"), "utf8");
   assert.match(html, /STREAMTV_STATIQUE/);
-  assert.match(html, /app\.js\?v=3\.18\.0/);
+  const { version } = JSON.parse(await readFile(join(RACINE, "package.json"), "utf8"));
+  assert.ok(html.includes(`app.js?v=${version}`), "le module publié ne porte pas la version du paquet");
 });
 
 test("la démonstration publiée inclut les animés et les films", async () => {
@@ -72,8 +73,9 @@ test("la démonstration se publie sous /streamtv/ pour GitHub Pages", async () =
     await executer(process.execPath, [join("scripts", "construire-statique.mjs"), "--base", "/streamtv", "--sortie", dossier], { cwd: RACINE });
 
     const html = await readFile(join(dossier, "index.html"), "utf8");
-    assert.match(html, /href="\/streamtv\/css\/base\.css\?v=3\.18\.0"/);
-    assert.match(html, /src="\/streamtv\/js\/app\.js\?v=3\.18\.0"/);
+    const { version } = JSON.parse(await readFile(join(RACINE, "package.json"), "utf8"));
+    assert.ok(html.includes(`href="/streamtv/css/base.css?v=${version}"`));
+    assert.ok(html.includes(`src="/streamtv/js/app.js?v=${version}"`));
     assert.match(html, /window\.STREAMTV_BASE = "\/streamtv"/);
     assert.equal(/href="\/(?!streamtv|#)/.test(html), false, "une adresse absolue est restée hors base");
 

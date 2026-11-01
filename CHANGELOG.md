@@ -1,5 +1,43 @@
 # Journal des versions
 
+## 3.19.0, 1er novembre 2026
+
+### Ce qui change
+
+- **Connexion à la console par le mot de passe seul.** Le code de vérification
+  devient le réglage `code_verification`, désactivé par défaut. Actif, il fait
+  réapparaître son champ dans le formulaire ; inactif, le champ n'existe plus.
+  Le mot de passe reste obligatoire dans les deux cas.
+- **Port d'administration.** `npm run admin` sert la console seule sur le port
+  3002, sans aucune page du catalogue ; sa racine mène au chemin privé de la
+  console. Verrou d'appareil et code partagés avec le site, sessions séparées.
+- **Publication depuis GitHub Pages.** `npm run publier` construit `docs/` sous
+  la base `/streamtv/` et `scripts/verifier-publication.mjs` contrôle l'adresse
+  publiée. Toute l'interface passe par `public/js/partage/base.js`.
+- **Cache corrigé.** Le serveur marquait `/js/` et `/css/` comme `immutable`
+  pour un an. Un fichier corrigé sans changement d'adresse restait donc absent
+  chez un visiteur déjà venu : c'est exactement ce qui faisait réapparaître
+  l'ancien formulaire de connexion. Scripts, styles et affiches passent en
+  `no-cache` avec ETag et réponse 304 ; seul `/vendor/` reste immuable.
+- **Version unique.** La version du paquet n'est plus recopiée dans le routeur :
+  elle y est lue, et un test compare `/api/etat` à `package.json`.
+
+### Ce qui casse
+
+- `GET /api/etat` annonce désormais `3.19.0`.
+- Le formulaire de connexion ne contient plus de champ `code` tant que le
+  réglage ne le demande pas ; un script qui remplissait ce champ doit d'abord
+  activer `code_verification`.
+- Les scripts et les styles ne sont plus servis `immutable`. Qui comptait sur un
+  cache d'un an pour une raison quelconque perd ce gain, et gagne des
+  corrections qui arrivent vraiment.
+
+### Chiffres de cette version
+
+- 455 tests, tous passants, lanceur `node --test`.
+- 8 199 chaînes, 3 animés, 4 films, 180 sources, 515 playlists déclarées.
+- Neuf réglages, 105 fichiers sous 900 lignes, 28 modules versionnés.
+
 ## 3.18.0, 1er novembre 2026
 
 Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
@@ -125,6 +163,6 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 ### Chiffres de cette version
 
-- 451 tests, tous passants, lanceur `node --test`.
+- 406 tests, tous passants, lanceur `node --test`.
 - 8 199 chaînes, 18 catégories, 179 pays, 180 sources déclarées, 515 playlists déclarées.
 - 3 animés, 4 films, tous sous licence affichée.
