@@ -198,17 +198,45 @@ async function demarrer() {
   appliquerApparence({ version: "" });
   app.racine = document.getElementById("application");
   app.zone = document.getElementById("page");
-  try {
-    const etat = await obtenir("/api/etat");
-    app.attenteSecondes = etat.attenteLecteur ?? 10;
-    app.bandeauDemo = Boolean(etat.bandeauDemo);
-    configurerRelais(etat.proxyActif === true);
-  } catch {
-    app.attenteSecondes = 10;
-  }
+
+  // L'état du serveur ne doit pas retarder le premier écran : la page se rend
+  // tout de suite, l'état arrive quand il arrive. Un /api/etat lent laissait
+  // sinon une page vide alors que le catalogue, lui, était déjà là.
+  const etatServeur = obtenir("/api/etat")
+    .then((etat_serveur) => {
+      app.attenteSecondes = etat_serveur.attenteLecteur ?? 10;
+      app.bandeauDemo = Boolean(etat_serveur.bandeauDemo);
+      configurerRelais(etat_serveur.proxyActif === true);
+    })
+    .catch(() => {
+      app.attenteSecondes = 10;
+    });
+
   await rendrePage();
   installerIncidents();
   enregistrerServiceWorker();
+  await etatServeur;
 }
 
-demarrer();
+/**
+ * Sans ce filet, la moindre erreur laissait une page vide, sans un mot. Un
+ * écran de démarrage qui reste affiché ou un message explicite dit au visiteur
+ * où il en est, et le bouton recharge sans lui demander de vider son cache.
+ */
+function afficherEchec() {
+  const racine = document.getElementById("application");
+  if (!racine) return;
+  const bouton = h("button", { class: "bouton", type: "button" }, "Recharger la page");
+  bouton.addEventListener("click", () => window.location.reload());
+  vider(racine).append(
+    h(
+      "div",
+      { class: "demarrage demarrage--echec", role: "alert" },
+      h("p", { class: "demarrage__marque" }, "StreamTV n'a pas pu démarrer"),
+      h("p", { class: "demarrage__texte" }, "Le catalogue n'a pas répondu. Vérifiez la connexion, puis rechargez."),
+      bouton
+    )
+  );
+}
+
+demarrer().catch(afficherEchec);

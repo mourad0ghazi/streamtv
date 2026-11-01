@@ -405,6 +405,33 @@ code {
   }
 }
 
+/* Écran de démarrage : il reste visible si un module ne se charge pas, ce qui
+   vaut mieux qu'une page vide. La coquille le remplace dès qu'elle est prête. */
+.demarrage {
+  display: grid;
+  place-content: center;
+  gap: var(--e2);
+  min-height: 60vh;
+  padding: var(--e6) var(--e4);
+  text-align: center;
+}
+
+.demarrage__marque {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.demarrage__texte {
+  margin: 0;
+  color: var(--texte-secondaire);
+}
+
+.demarrage .bouton {
+  justify-self: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
