@@ -292,6 +292,8 @@ function rechercheDe(adresse) {
 }
 
 test("le relais est fermé par défaut : /flux répond 503", async () => {
+  // L'état persisté de l'installation ne doit pas décider du test.
+  await lecture.modifier({ proxy_actif: false });
   const reponse = reponseFactice();
   await proxy.traiter({ requete: requeteBrute(), reponse, recherche: rechercheDe("/flux?url=https://exemple.test/a.m3u8") });
   assert.equal(reponse.code, 503);
