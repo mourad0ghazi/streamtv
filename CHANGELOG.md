@@ -65,6 +65,17 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
   et donnerait des pages blanches en ligne. Chaque route a son dossier pour
   qu'un accès direct réponde 200, et `scripts/verifier-publication.mjs` contrôle
   l'adresse publiée en treize points.
+- **Port d'administration** : `npm run admin` démarre le serveur sur le port
+  3002 avec une surface dédiée. Elle sert la console, ses ressources et l'API,
+  jamais une page du catalogue ; sa racine renvoie vers le chemin privé de la
+  console. Les quatre barrières restent entières (chemin privé, mot de passe,
+  verrou d'appareil, code de vérification) : le port ne les remplace pas. Le
+  verrou d'appareil et le code sont partagés entre les deux surfaces, les
+  sessions ne le sont pas (une par processus). `PORT_ADMIN` change le port,
+  `STREAMTV_HOTE=127.0.0.1` limite l'écoute à la machine.
+- **Documentation de la console** : les onglets renvoyaient vers
+  `/docs/ADMINISTRATION.md`, qui répondait 404. Le fichier est désormais servi
+  en `text/markdown` sur les deux surfaces.
 - **Service worker** : `public/sw.js` existait et préchargeait tout, mais aucun
   code ne l'enregistrait : le mode hors ligne et l'installation ne prenaient
   jamais effet. L'enregistrement vit dans `app.js`, hors ligne d'en-tête, et son
@@ -105,6 +116,6 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 ### Chiffres de cette version
 
-- 435 tests, tous passants, lanceur `node --test`.
+- 446 tests, tous passants, lanceur `node --test`.
 - 8 199 chaînes, 18 catégories, 179 pays, 180 sources déclarées, 515 playlists déclarées.
 - 3 animés, 4 films, tous sous licence affichée.

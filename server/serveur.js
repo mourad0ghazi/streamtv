@@ -81,12 +81,12 @@ function envoyer(reponse, code, type, corps, entetes = {}) {
   reponse.end(corps);
 }
 
-async function servirFichier(reponse, chemin, { immuable = false } = {}) {
+async function servirFichier(reponse, chemin, { immuable = false, type } = {}) {
   try {
     const info = await stat(chemin);
     if (!info.isFile()) return false;
     const corps = await readFile(chemin);
-    envoyer(reponse, 200, TYPES[extname(chemin)] ?? "application/octet-stream", corps, {
+    envoyer(reponse, 200, type ?? TYPES[extname(chemin)] ?? "application/octet-stream", corps, {
       "cache-control": immuable ? "public, max-age=31536000, immutable" : "no-cache",
       etag: `"${info.size.toString(36)}-${Math.floor(info.mtimeMs).toString(36)}"`
     });
@@ -96,7 +96,20 @@ async function servirFichier(reponse, chemin, { immuable = false } = {}) {
   }
 }
 
-export function creerServeur() {
+/**
+ * Surface d'administration : le port dédié à la console. Il ne sert que la
+ * console et ce qu'elle charge, jamais les pages du catalogue ; sa racine mène
+ * à l'adresse privée de la console, puisque ce port n'est pas public. Les
+ * quatre barrières de la console (chemin privé, mot de passe, verrou
+ * d'appareil, code de vérification) restent entières : ce port ne les remplace
+ * pas, il les déplace au même endroit sans rien laisser deviner du catalogue.
+ */
+const SURFACES = new Set(["site", "administration"]);
+
+export function creerServeur(options = {}) {
+  const surface = SURFACES.has(options.surface) ? options.surface : "site";
+  const administration = surface === "administration";
+
   return createServer(async (requete, reponse) => {
     try {
       const url = new URL(requete.url, "http://localhost");
@@ -109,18 +122,30 @@ export function creerServeur() {
       }
 
       const cheminConsole = reglages.valeur("chemin_console");
+      if (administration && (chemin === "/" || chemin === "")) {
+        reponse.writeHead(302, { location: cheminConsole, "cache-control": "no-store", ...ENTETES_SECURITE });
+        return reponse.end();
+      }
       if (chemin === cheminConsole || chemin === `${cheminConsole}/`) {
         const fichier = join(PUBLIC, "console.html");
         if (await servirFichier(reponse, fichier)) return;
       }
 
-      if (PAGES.some((motif) => motif.test(chemin))) {
+      // La documentation que la console cite depuis chacun de ses onglets.
+      if (chemin === "/docs/ADMINISTRATION.md") {
+        if (await servirFichier(reponse, join(RACINE, "docs", "ADMINISTRATION.md"), { type: "text/markdown; charset=utf-8" })) return;
+      }
+
+      if (!administration && PAGES.some((motif) => motif.test(chemin))) {
         const fichier = join(PUBLIC, "index.html");
         if (await servirFichier(reponse, fichier)) return;
       }
 
       const relatif = normalize(chemin).replace(/^(\.\.[/\\])+/, "").replace(/^[/\\]+/, "");
-      if (relatif && !relatif.startsWith("..")) {
+      // Sur le port d'administration, seules les ressources de la console sont
+      // servies : une page du catalogue n'a rien à y faire.
+      const autorisee = !administration || RESOURCES_ADMIN.some((prefixe) => chemin.startsWith(prefixe));
+      if (relatif && !relatif.startsWith("..") && autorisee) {
         const absolu = join(PUBLIC, relatif);
         const immuable = ["/js/", "/css/", "/affiches/", "/vendor/"].some((prefixe) => chemin.startsWith(prefixe));
         if (absolu.startsWith(PUBLIC) && (await servirFichier(reponse, absolu, { immuable }))) return;
@@ -130,12 +155,26 @@ export function creerServeur() {
         return envoyer(reponse, 404, "application/json; charset=utf-8", JSON.stringify({ erreur: "Route inconnue." }));
       }
 
+      if (administration) {
+        return envoyer(reponse, 404, "text/html; charset=utf-8", pageAdministrationIntrouvable(chemin, cheminConsole));
+      }
       return envoyer(reponse, 404, "text/html; charset=utf-8", pageIntrouvable(chemin));
     } catch (erreur) {
       console.error("Erreur de traitement :", erreur);
       envoyer(reponse, 500, "text/plain; charset=utf-8", "Erreur interne du serveur.");
     }
   });
+}
+
+/** Ce que la console charge : ses scripts, ses styles, son icône, sa documentation. */
+const RESOURCES_ADMIN = ["/js/", "/css/", "/affiches/", "/vendor/", "/icone.svg", "/manifeste.webmanifest"];
+
+function pageAdministrationIntrouvable(chemin, cheminConsole) {
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Port d'administration</title>
+<link rel="stylesheet" href="/css/base.css?v=3.18.0"></head>
+<body><main class="page"><h1>Ce port sert l'administration</h1>
+<p>L'adresse <code>${chemin.replace(/[<>&"]/g, "")}</code> n'existe pas ici. Le catalogue se trouve sur le port du site.</p>
+<p><a class="lien" href="${cheminConsole}">Ouvrir la console d'administration</a></p></main></body></html>`;
 }
 
 function pageIntrouvable(chemin) {
@@ -146,18 +185,26 @@ function pageIntrouvable(chemin) {
 <p><a class="lien" href="/">Revenir au catalogue</a></p></main></body></html>`;
 }
 
-async function demarrer() {
+export async function demarrer(options = {}) {
+  const surface = SURFACES.has(options.surface) ? options.surface : "site";
+  const administration = surface === "administration";
+
   await charger();
   await reglages.charger();
   await auth.initialiser();
 
-  const port = Number(process.env.PORT) || 3000;
-  const serveur = creerServeur();
+  const port = Number(options.port ?? process.env.PORT) || (administration ? 3002 : 3000);
+  const hote = options.hote ?? process.env.STREAMTV_HOTE ?? "0.0.0.0";
+  const serveur = creerServeur({ surface });
 
-  await new Promise((resoudre) => serveur.listen(port, "0.0.0.0", resoudre));
+  await new Promise((resoudre) => serveur.listen(port, hote, resoudre));
 
   const cheminConsole = reglages.valeur("chemin_console");
-  console.log(`StreamTV écoute sur http://127.0.0.1:${port}`);
+  if (administration) {
+    console.log(`Administration StreamTV sur http://127.0.0.1:${port} (racine renvoyée vers la console)`);
+  } else {
+    console.log(`StreamTV écoute sur http://127.0.0.1:${port}`);
+  }
   console.log(`Console : http://127.0.0.1:${port}${cheminConsole}`);
   console.log(`Code de vérification : ${auth.codeVerification()} (renouvellement dans ${auth.secondesAvantRenouvellement()} s)`);
   if (auth.motDePasseParDefaut()) {
@@ -169,12 +216,15 @@ async function demarrer() {
   }, 60000);
   intervalle.unref();
 
-  const minutes = reglages.valeur("intervalle_sonde_minutes");
-  const sondeur = setInterval(async () => {
-    const { instantane } = await import("./magasin.js");
-    await sonde.sonderTout(instantane().sources.sources ?? []);
-  }, minutes * 60 * 1000);
-  sondeur.unref();
+  // Une seule surface sonde : le port d'administration ne fait que lire.
+  if (!administration) {
+    const minutes = reglages.valeur("intervalle_sonde_minutes");
+    const sondeur = setInterval(async () => {
+      const { instantane } = await import("./magasin.js");
+      await sonde.sonderTout(instantane().sources.sources ?? []);
+    }, minutes * 60 * 1000);
+    sondeur.unref();
+  }
 
   return serveur;
 }
@@ -182,5 +232,3 @@ async function demarrer() {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   await demarrer();
 }
-
-export { demarrer };

@@ -7,8 +7,9 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 ## Démarrer
 
 ```bash
-npm start                 # http://127.0.0.1:3000
-npm test                  # 435 tests, lanceur intégré de Node
+npm start                 # http://127.0.0.1:3000   le site
+npm run admin             # http://127.0.0.1:3002   l'administration seule
+npm test                  # 446 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
@@ -71,6 +72,16 @@ La console n'est pas à `/admin` : son adresse est le réglage `chemin_console`,
 par défaut `/console-f3a91c`. Quatre barrières la protègent : chemin privé, mot
 de passe (scrypt), verrou d'appareil, code de vérification affiché sur la sortie
 du serveur et renouvelé toutes les dix minutes.
+
+**Un port pour l'administration.** `npm run admin` démarre une surface dédiée
+sur le port 3002. Elle sert la console, ses ressources et l'API, jamais une page
+du catalogue : demander `/chaines` y répond 404 avec un lien vers la console. La
+racine du port renvoie vers l'adresse privée de la console, ce qui ne dit rien
+de plus à qui a déjà trouvé le port. Les deux surfaces partagent le secret, donc
+le verrou d'appareil et le code de vérification, mais **pas les sessions** :
+une connexion ouverte sur 3002 n'ouvre pas 3000, et réciproquement. Pour
+interdire l'accès depuis les autres machines, démarrez avec
+`STREAMTV_HOTE=127.0.0.1 npm run admin` ; `PORT_ADMIN` change le port.
 
 ## D'où viennent les contenus
 
@@ -191,14 +202,14 @@ fait échouer `npm test`.
 ## Organisation
 
 ```
-server/       serveur HTTP, routeur, magasin, import, sonde, audit, auth, réglages
+server/       serveur HTTP (site et administration), routeur, magasin, import, sonde, audit, auth, réglages
 public/       interface : coquille, vues, console, styles, service worker
 public/js/partage/catalogue.js
               calcul de catalogue partagé par le serveur et la version statique
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        435 tests, lanceur intégré de Node
+tests/        446 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

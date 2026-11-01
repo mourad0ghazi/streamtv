@@ -135,6 +135,11 @@ Effet visible : l'adresse à laquelle la console répond. Risque si mal réglé 
 un chemin devinable facilite les tentatives d'accès. À changer depuis l'onglet
 Réglages, puis à retenir avant tout partage de lien.
 
+Ce chemin vaut sur les deux surfaces : le site, et le port d'administration
+lancé par `npm run admin`. Sur ce port, la racine y renvoie ; le site public, lui,
+ne cite jamais ce chemin. Un réglage modifié ici prend effet au redémarrage des
+deux processus, puisque chacun le relit à son démarrage.
+
 ### Plafond de cartes par page {#reglage-plafond-cartes}
 
 Type : entier. Défaut : 24. Bornes : 8 à 60.
@@ -190,6 +195,36 @@ Type : entier, en secondes. Défaut : 10. Bornes : 5 à 60.
 Effet visible : au-delà, le lecteur abandonne et propose trois issues :
 réessayer, choisir une autre source, revenir au catalogue. Risque : trop long,
 l'écran reste noir ; trop court, une source lente est abandonnée à tort.
+
+## 3 bis. Deux surfaces, un seul état
+
+Le site et l'administration sont le même code, les mêmes données, le même
+secret. Deux façons de les atteindre :
+
+| Surface | Commande | Port | Ce qu'elle sert |
+| ------- | -------- | ---- | --------------- |
+| site | `npm start` | 3000 | le catalogue, l'API, la console à son chemin privé |
+| administration | `npm run admin` | 3002 | la console, ses ressources, l'API |
+
+Sur le port d'administration, une page du catalogue (`/chaines`, `/films`…)
+répond 404 avec un lien vers la console : ce port ne devient pas une deuxième
+adresse publique du site. Les ressources de la console, elles, sont servies
+normalement, sinon la page serait nue.
+
+**Ce qui est partagé.** `data/secret.json` porte le verrou d'appareil et le
+secret du code de vérification : un appareil déjà reconnu sur un port ne
+redemande pas le code sur l'autre, et le code affiché est le même des deux côtés.
+
+**Ce qui ne l'est pas.** Les sessions vivent en mémoire, une par processus. Se
+connecter sur 3002 n'ouvre pas 3000, et réciproquement : c'est voulu, une
+session de console ne circule pas d'une surface à l'autre. Fermer un processus
+ferme ses sessions.
+
+**Réglages de démarrage.** `PORT_ADMIN` change le port. `STREAMTV_HOTE=127.0.0.1`
+limite l'écoute à la machine : à faire dès que le port n'a pas à être joignable
+d'ailleurs, et obligatoire si la console n'est pas encore passée au mot de passe
+de votre choix. Une seule surface sonde les sources, celle du site ; le port
+d'administration ne fait que lire.
 
 ## 4. Les sources
 

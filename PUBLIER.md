@@ -103,8 +103,14 @@ jobs:
 
 ## En attendant, le site tourne déjà ici
 
-Deux aperçus vivent dans cet atelier :
+Trois aperçus vivent dans cet atelier :
 
-- **serveur complet**, port 3000 : tout, y compris la console `/console-f3a91c` ;
-- **version publiée**, port 3001 : exactement ce que GitHub servira, sous
-  `/streamtv/`, sans console et en lecture seule.
+- **StreamTV**, port 3000 : le site complet, console comprise à `/console-f3a91c` ;
+- **Démonstration statique**, port 3001 : exactement ce que GitHub servira, sous
+  `/streamtv/`, sans console et en lecture seule ;
+- **Administration**, port 3002 : la console seule, sa racine menant à son chemin
+  privé. Aucune page du catalogue n'y répond.
+
+Les sessions ne traversent pas d'un port à l'autre : se connecter sur 3002
+n'ouvre pas 3000. Le code de vérification est le même des deux côtés, et il est
+affiché dans les journaux du processus qui vous intéresse.
