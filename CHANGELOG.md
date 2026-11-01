@@ -52,6 +52,9 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 - **Documentation** : `docs/ADMINISTRATION.md` couvre les sept matières
   attendues, avec une section par onglet et par réglage. Un test vérifie la
   correspondance dans les deux sens.
+- **Page Favoris** : `/favoris` était connue de la coquille et de la
+  navigation, mais absente des pages rendues par le serveur ; le lien menait à
+  un 404. La route est servie, deux tests la couvrent.
 - **Design** : jeu de jetons complet, un seul accent, aucune ombre hors éléments
   flottants, un test qui refuse dégradés, emoji d'interface, tirets cadratins,
   mots de bateleur, tailles hors échelle et espacements non multiples de 4.
