@@ -158,6 +158,57 @@ async function appeler(fetchImpl, url, parametres, signal) {
   return reponse.json();
 }
 
+/**
+ * Fiche TMDb à partir de son identifiant, sans recherche par titre.
+ *
+ * C'est le chemin utilisé quand on ajoute un film au site par son identifiant
+ * TMDb : la recherche par titre peut tomber sur un homonyme, l'identifiant non.
+ * La rotation des clés et les messages d'erreur sont les mêmes que pour la
+ * recherche : une seule façon de parler à TMDb.
+ */
+export async function parId(tmdbId, { fetchImpl = globalThis.fetch, delai = DELAI_MS } = {}) {
+  if (!Number.isInteger(tmdbId) || tmdbId <= 0) {
+    return { disponible: false, raison: "L'identifiant TMDb doit être un entier positif." };
+  }
+  const total = await cles.nombre("tmdb");
+  if (!total) {
+    return {
+      disponible: false,
+      raison: "Aucune clé TMDb n'est configurée. Lancez `node scripts/obtenir-cles.mjs`, ou posez TMDB_API_KEY dans l'environnement."
+    };
+  }
+  if (typeof fetchImpl !== "function") {
+    return { disponible: false, raison: "Ce contexte n'a pas d'accès réseau : TMDb ne peut pas être interrogé." };
+  }
+  let dernierSouci = null;
+  for (let tentative = 0; tentative < total; tentative += 1) {
+    const apiKey = await cles.cleListe("tmdb", tentative);
+    const controleur = new AbortController();
+    const minuteur = setTimeout(() => controleur.abort(), delai);
+    try {
+      const details = await appeler(fetchImpl, `${BASE}/movie/${tmdbId}`, { api_key: apiKey, language: "fr-FR" }, controleur.signal);
+      const fiche = normaliser(null, details);
+      if (!fiche) return { disponible: false, raison: "TMDb a répondu, mais sans fiche exploitable." };
+      return { disponible: true, fiche };
+    } catch (erreur) {
+      if (erreur.code === 401 || erreur.code === 429) {
+        dernierSouci = erreur.code === 401 ? "clé refusée" : "quota épuisé";
+        continue;
+      }
+      if (erreur.name === "AbortError") {
+        return { disponible: false, raison: `TMDb n'a pas répondu en ${Math.round(delai / 1000)} secondes.` };
+      }
+      return { disponible: false, raison: "TMDb est injoignable depuis ce serveur. Vérifiez la connexion, puis réessayez." };
+    } finally {
+      clearTimeout(minuteur);
+    }
+  }
+  return {
+    disponible: false,
+    raison: `Les ${total} clés TMDb ont été refusées (${dernierSouci ?? "refus"}). Ces clés publiques sont partagées : créez la vôtre et posez-la dans TMDB_API_KEY.`
+  };
+}
+
 /** Fiche d'un film, depuis le cache si elle est fraîche. */
 export async function ficheFilm(film, options = {}) {
   const id = film?.id;

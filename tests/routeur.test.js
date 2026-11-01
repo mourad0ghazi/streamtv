@@ -229,8 +229,16 @@ test("une route inconnue répond 404 en JSON", async () => {
 });
 
 test("la liste des onglets de la console est cohérente", () => {
-  assert.equal(ONGLETS.length, 5);
-  assert.deepEqual(ONGLETS.map((o) => o.cle), ["sources", "anime", "films", "reglages", "journal"]);
+  assert.equal(ONGLETS.length, 13);
+  assert.deepEqual(ONGLETS.map((o) => o.cle), [
+    "tableau", "accueil", "apparence", "lecture",
+    "sources", "anime", "films",
+    "utilisateurs", "permissions",
+    "assistant", "journal", "statistiques", "reglages"
+  ]);
+  // Chaque onglet déclare la permission qui le rend visible : la console ne
+  // montre pas un onglet que le serveur refuserait.
+  for (const onglet of ONGLETS) assert.equal(typeof onglet.permission, "string");
 });
 
 test("la fiche TMDb d'un film répond sans jamais bloquer la page", async () => {

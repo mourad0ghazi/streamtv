@@ -161,6 +161,22 @@ function repondreStatique(cheminComplet, donnees) {
     const source = donnees.sources.find((s) => s.id === chaine.source);
     return { ...chaine, licence: licenceDes(chaine, donnees), nomSource: source?.nom ?? null };
   }
+  if (chemin.startsWith("/api/films/") && chemin.endsWith("/lecture")) {
+    const film = donnees.films.find((f) => f.id === chemin.slice("/api/films/".length, -"/lecture".length));
+    if (!film) throw new ErreurApi("Film introuvable.", 404);
+    return {
+      type: "fichier",
+      disponible: Boolean(film.url),
+      url: film.url ?? null,
+      raison: "La démonstration statique lit les fichiers du catalogue : elle n'a pas de fournisseur tiers."
+    };
+  }
+  if (chemin === "/api/apparence") {
+    return { feuille: "", valeurs: null };
+  }
+  if (chemin === "/api/accueil") {
+    return { sections: donnees.sections ?? [] };
+  }
   if (chemin.startsWith("/api/films/") && chemin.endsWith("/tmdb")) {
     // La démonstration statique n'a pas de serveur : elle ne peut ni garder des
     // clés ni appeler TMDb. Elle le dit, plutôt que de faire semblant.
@@ -266,3 +282,4 @@ async function demander(chemin, options = {}) {
 
 export const obtenir = (chemin, options) => demander(chemin, options);
 export const envoyer = (chemin, corps, options) => demander(chemin, { ...options, methode: "POST", corps });
+export const supprimer = (chemin, options) => demander(chemin, { ...options, methode: "DELETE" });

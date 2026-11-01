@@ -17,3 +17,10 @@ node_modules/
 *.log
 data/cles-api.json
 data/cache-films.json
+data/comptes.json
+data/apparence.json
+data/accueil.json
+data/lecture.json
+data/incidents.json
+data/permissions.json
+data/films-ajoutes.json

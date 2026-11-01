@@ -23,6 +23,13 @@ import * as auth from "./auth.js";
 import * as sonde from "./sonde.js";
 import * as clesFilms from "./cles-films.js";
 import * as tmdb from "./tmdb.js";
+import * as apparence from "./apparence.js";
+import * as accueil from "./accueil.js";
+import * as lecture from "./lecture.js";
+import * as incidents from "./incidents.js";
+import { traiterConsole } from "./routes-console.js";
+import * as filmsAjoutes from "./films-ajoutes.js";
+import * as comptes from "./comptes.js";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = join(RACINE, "public");
@@ -111,6 +118,7 @@ function lireCorps(requete) {
 /* ------------------------------------------------------------------ */
 
 function licenceDeContenu(item, famille) {
+  if (item.origine === "TMDb") return "Flux tiers, droits attestés par l'administrateur";
   if (item.licence) return item.licence;
   const ids = item.sources ?? (item.source ? [item.source] : []);
   const libelles = ids.map((id) => sourceParId(id)?.licence).filter(Boolean);
@@ -163,10 +171,12 @@ function ficheAnime(id) {
 }
 
 /** Réponse de la page Films : rangées non vides, facettes des filtres. */
-function reponseFilms(filtres) {
+async function reponseFilms(filtres) {
   const plafond = reglages.valeur("plafond_cartes");
   const maxGenre = reglages.valeur("rangees_genre_max");
-  const tous = contenus("films");
+  // Les films ajoutés par la console complètent le catalogue livré ; ils ne le
+  // modifient pas.
+  const tous = await filmsAjoutes.fusionner(contenus("films"));
   const retenus = catalogue.filtrerFilms(tous, filtres);
   return {
     total: retenus.length,
@@ -176,8 +186,8 @@ function reponseFilms(filtres) {
   };
 }
 
-function ficheFilm(id) {
-  const film = contenus("films").find((f) => f.id === id);
+async function ficheFilm(id) {
+  const film = (await filmsAjoutes.fusionner(contenus("films"))).find((f) => f.id === id);
   if (!film) return null;
   return {
     ...film,
@@ -190,10 +200,10 @@ function ficheFilm(id) {
 }
 
 /** Recherche globale : plafonnée, chaque résultat porte son type en toutes lettres. */
-function rechercher(terme) {
+async function rechercher(terme) {
   const plafond = reglages.valeur("plafond_cartes");
   return catalogue.rechercher(
-    { chaines: contenus("chaines"), anime: contenus("anime"), films: contenus("films") },
+    { chaines: contenus("chaines"), anime: contenus("anime"), films: await filmsAjoutes.fusionner(contenus("films")) },
     terme,
     plafond
   );
@@ -247,7 +257,7 @@ async function exigerSession(requete, reponse, permission, options = {}) {
     json(reponse, 401, { erreur: "Session absente ou expirée. Reconnectez-vous." });
     return null;
   }
-  if (permission && !auth.autoriser(session.role, permission)) {
+  if (permission && !auth.autoriserSession(session, permission)) {
     json(reponse, 403, { erreur: `Le rôle ${session.role} n'a pas la permission ${permission}.` });
     return null;
   }
@@ -344,10 +354,23 @@ export async function traiter(requete, reponse, options = {}) {
   const surface = options.surface === "administration" ? "administration" : "site";
   const accesLibre = () => surface === "administration" && reglages.valeur("console_sans_mot_de_passe") === true;
 
+  // Feuille d'apparence du site : un vrai fichier CSS, servi par le serveur,
+  // pour que la politique de sécurité n'ait pas à autoriser de style en ligne.
+  if (chemin === "/apparence.css" && methode === "GET") {
+    await apparence.rafraichir();
+    reponse.writeHead(200, {
+      "content-type": "text/css; charset=utf-8",
+      "cache-control": "no-cache"
+    });
+    reponse.end(await apparence.feuille());
+    return true;
+  }
+
   if (!chemin.startsWith("/api/")) return false;
 
   await reglages.charger();
   await auth.initialiser();
+  await comptes.rafraichir();
 
   try {
     if (chemin === "/api/etat" && methode === "GET") {
@@ -396,23 +419,41 @@ export async function traiter(requete, reponse, options = {}) {
     }
 
     if (chemin === "/api/films" && methode === "GET") {
-      return json(reponse, 200, reponseFilms(requete_)), true;
+      return json(reponse, 200, await reponseFilms(requete_)), true;
+    }
+
+    // Lecture d'un film : le fournisseur tiers s'il est ouvert et attesté,
+    // sinon le fichier du catalogue. La fiche ne devine jamais.
+    if (chemin.startsWith("/api/films/") && chemin.endsWith("/lecture") && methode === "GET") {
+      const film = await ficheFilm(chemin.slice("/api/films/".length, -"/lecture".length));
+      if (!film) return json(reponse, 404, { erreur: "Film introuvable." }), true;
+      await lecture.rafraichir();
+      const progress = Number.parseInt(requete_.progress ?? "0", 10);
+      const tmdbId = Number.parseInt(String(film.tmdbId ?? ""), 10);
+      const tiers = await lecture.lienFilm({ tmdbId: Number.isInteger(tmdbId) ? tmdbId : null, progress });
+      if (tiers.disponible) return json(reponse, 200, { type: "fournisseur", ...tiers }), true;
+      return json(reponse, 200, {
+        type: "fichier",
+        disponible: Boolean(film.url),
+        url: film.url ?? null,
+        raison: tiers.raison
+      }), true;
     }
 
     if (chemin.startsWith("/api/films/") && chemin.endsWith("/tmdb") && methode === "GET") {
-      const film = ficheFilm(chemin.slice("/api/films/".length, -"/tmdb".length));
+      const film = await ficheFilm(chemin.slice("/api/films/".length, -"/tmdb".length));
       if (!film) return json(reponse, 404, { erreur: "Film introuvable." }), true;
       const resultat = await tmdb.ficheFilm(film);
       return json(reponse, 200, resultat), true;
     }
 
     if (chemin.startsWith("/api/films/") && methode === "GET") {
-      const fiche = ficheFilm(chemin.slice("/api/films/".length));
+      const fiche = await ficheFilm(chemin.slice("/api/films/".length));
       return fiche ? json(reponse, 200, fiche) : json(reponse, 404, { erreur: "Film introuvable." }), true;
     }
 
     if (chemin === "/api/recherche" && methode === "GET") {
-      return json(reponse, 200, rechercher(requete_.q ?? "")), true;
+      return json(reponse, 200, await rechercher(requete_.q ?? "")), true;
     }
 
     if (chemin === "/api/guide" && methode === "GET") {
@@ -422,6 +463,25 @@ export async function traiter(requete, reponse, options = {}) {
 
     if (chemin === "/api/sources" && methode === "GET") {
       return json(reponse, 200, { sources: sourcesPubliques() }), true;
+    }
+
+    // Apparence : la page reçoit une feuille de variables, jamais un réglage
+    // libre. Sans réseau, le site garde ses jetons d'origine.
+    if (chemin === "/api/apparence" && methode === "GET") {
+      await apparence.rafraichir();
+      return json(reponse, 200, { feuille: await apparence.feuille(), valeurs: apparence.valeurs() }), true;
+    }
+
+    if (chemin === "/api/accueil" && methode === "GET") {
+      await accueil.rafraichir();
+      return json(reponse, 200, { sections: accueil.valeurs() }), true;
+    }
+
+
+    if (chemin === "/api/incidents" && methode === "POST") {
+      const corps = await lireCorps(requete);
+      const resultat = await incidents.enregistrer(corps);
+      return json(reponse, resultat.ok ? 202 : 400, resultat), true;
     }
 
     if (chemin === "/api/signalements" && methode === "POST") {
@@ -434,6 +494,22 @@ export async function traiter(requete, reponse, options = {}) {
 
     /* ---------------- console ---------------- */
 
+    // Les routes de la nouvelle console vivent dans routes-console.js : elles
+    // déclarent leur permission, l'aiguilleur répond 401 ou 403.
+    if (chemin.startsWith("/api/admin/")) {
+      const traitee = await traiterConsole({
+        chemin,
+        methode,
+        requete,
+        reponse,
+        json,
+        lireCorps,
+        version: VERSION,
+        exiger: (permission) => exigerSession(requete, reponse, permission, { accesLibre: accesLibre() })
+      });
+      if (traitee) return true;
+    }
+
     if (chemin === "/api/admin/connexion" && methode === "POST") {
       if (accesLibre()) {
         if (!accesLibreJournalise) {
@@ -444,6 +520,7 @@ export async function traiter(requete, reponse, options = {}) {
       }
       const corps = await lireCorps(requete);
       const resultat = await auth.connexion({
+        identifiant: corps.identifiant ?? "",
         motDePasse: corps.motDePasse,
         code: corps.code,
         jetonAppareil: jetonAppareil(requete),
@@ -454,11 +531,13 @@ export async function traiter(requete, reponse, options = {}) {
         await audit.journaliser("A02", { raison: resultat.raison }, "visiteur");
         const messages = {
           "mot-de-passe": "Mot de passe incorrect.",
+          identifiants: "Identifiant ou mot de passe incorrect.",
+          "compte-desactive": "Ce compte est désactivé. Demandez sa réactivation au propriétaire.",
           code: "Code de vérification incorrect ou périmé. Le code courant est affiché sur la sortie du serveur."
         };
         return json(reponse, 401, { erreur: messages[resultat.raison] ?? "Connexion refusée." }), true;
       }
-      await audit.journaliser("A01", { nouvelAppareil: resultat.nouvelAppareil }, "administrateur");
+      await audit.journaliser("A01", { nouvelAppareil: resultat.nouvelAppareil }, resultat.compte?.identifiant ?? "administrateur");
       const entetes = ["stv_session=" + resultat.jeton + "; Path=/; HttpOnly; SameSite=Strict"];
       if (resultat.jetonAppareil) {
         entetes.push("stv_appareil=" + resultat.jetonAppareil + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000");
@@ -468,7 +547,13 @@ export async function traiter(requete, reponse, options = {}) {
       return json(
         reponse,
         200,
-        { role: "administrateur", jeton: resultat.jeton, jetonAppareil: resultat.jetonAppareil ?? null },
+        {
+          role: resultat.compte?.role ?? "administrateur",
+          compte: resultat.compte ? { id: resultat.compte.id, nom: resultat.compte.nom } : { id: "proprietaire", nom: "Propriétaire de la console" },
+          proprietaire: resultat.proprietaire === true || !resultat.compte,
+          jeton: resultat.jeton,
+          jetonAppareil: resultat.jetonAppareil ?? null
+        },
         { "set-cookie": entetes }
       ), true;
     }
@@ -485,7 +570,9 @@ export async function traiter(requete, reponse, options = {}) {
           connecte: true,
           accesLibre: true,
           role: "administrateur",
-          permissions: auth.permissions("administrateur"),
+          proprietaire: true,
+          compte: { id: "proprietaire", nom: "Accès libre de la console" },
+          permissions: auth.permissions("proprietaire"),
           motDePasseParDefaut: auth.motDePasseParDefaut(),
           codeRequis: false
         }), true;
@@ -494,7 +581,9 @@ export async function traiter(requete, reponse, options = {}) {
       return json(reponse, 200, {
         connecte: Boolean(session),
         role: session?.role ?? null,
-        permissions: session ? auth.permissions(session.role) : [],
+        proprietaire: session?.compte === "proprietaire",
+        compte: session?.compte ?? null,
+        permissions: session ? (session.effectives ?? auth.permissions(session.role)) : [],
         motDePasseParDefaut: auth.motDePasseParDefaut(),
         codeRequis: reglages.valeur("code_verification") === true
       }), true;

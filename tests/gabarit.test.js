@@ -67,7 +67,7 @@ test("la grille de bureau reste fluide au-dessus de 640 pixels", async () => {
   const css = await fichiersCss();
   const regle = /^\.grille\s*\{([\s\S]*?)\}/m.exec(css["vues.css"]);
   assert.ok(regle);
-  assert.match(regle[1], /repeat\(auto-fill,\s*minmax\(190px,\s*1fr\)\)/);
+  assert.match(regle[1], /repeat\(auto-fill,\s*minmax\(var\(--affiche-largeur,\s*190px\),\s*1fr\)\)/);
 });
 
 test("les cartes prennent le format de leur affiche", async () => {

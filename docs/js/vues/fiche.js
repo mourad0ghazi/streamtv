@@ -8,6 +8,7 @@ import { obtenir } from "../api.js";
 import { attente, etatErreur, boutonLecture, meta, carteChaine } from "../composants.js";
 import * as favoris from "../favoris.js";
 import * as progression from "../progression.js";
+import { ouvrirLectureTierce } from "../lecture-embed.js";
 import * as zapping from "../zapping.js";
 import { regarderVod, regarderChaine } from "../lecteur.js";
 
@@ -166,6 +167,36 @@ async function ficheFilm(racine, id, app) {
   }
   const reprise = progression.lire("films", film.id);
   const libelle = reprise ? `Reprendre à ${formaterPosition(reprise.position)}` : "Regarder";
+
+  // Un seul bouton, deux chemins : le fournisseur tiers quand le serveur en
+  // fournit une adresse vérifiée, le fichier du catalogue sinon. La décision
+  // est prise par le serveur, pas par la page.
+  const lancer = async () => {
+    const position = reprise?.position ?? 0;
+    try {
+      const lecture = await obtenir(`/api/films/${encodeURIComponent(film.id)}/lecture?progress=${Math.max(0, Math.floor(position))}`);
+      if (lecture?.type === "fournisseur" && lecture.url) {
+        ouvrirLectureTierce({
+          url: lecture.url,
+          titre: film.titre,
+          fournisseur: lecture.fournisseur,
+          attribution: lecture.attribution,
+          reprise: position
+        });
+        return;
+      }
+    } catch {
+      // Le serveur n'a pas répondu : la lecture du fichier reste possible.
+    }
+    regarderVod({
+      titre: film.titre,
+      url: film.url,
+      famille: "films",
+      id: film.id,
+      reprise: position,
+      attenteSecondes: app.attenteSecondes
+    });
+  };
   // La fiche s'affiche tout de suite ; TMDb arrive après, et son absence ne
   // retarde ni ne casse jamais la page.
   const zoneTmdb = h("div", { class: "bloc-tmdb" }, h("p", { class: "champ__aide" }, "Recherche de la fiche TMDb"));
@@ -184,22 +215,17 @@ async function ficheFilm(racine, id, app) {
         h(
           "div",
           { class: "fiche__actions" },
-          boutonLecture(
-            libelle,
-            () =>
-              regarderVod({
-                titre: film.titre,
-                url: film.url,
-                famille: "films",
-                id: film.id,
-                reprise: reprise?.position ?? 0,
-                attenteSecondes: app.attenteSecondes
-              }),
-            "principal"
-          ),
+          boutonLecture(libelle, lancer, "principal"),
           boutonFavori({ famille: "films", id: film.id, titre: film.titre, lien: `/films/${film.id}` })
         ),
         h("p", { class: "fiche__synopsis" }, film.synopsis ?? "Synopsis à venir."),
+        film.origine === "TMDb"
+          ? h(
+              "p",
+              { class: "champ__aide" },
+              "Film ajouté depuis TMDb. Le flux est fourni par un service tiers : sa disponibilité et ses droits ne sont pas garantis par StreamTV."
+            )
+          : null,
         blocLicence(film.licence, (film.sourcesDetail ?? []).map((s) => s.nom).join(", ")),
         zoneTmdb
       )

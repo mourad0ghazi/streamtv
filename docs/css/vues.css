@@ -9,7 +9,9 @@
 
 .grille {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  /* La largeur d'une affiche vient des réglages d'apparence : le nombre
+     d'affiches par rangée choisi dans la console s'applique ici. */
+  grid-template-columns: repeat(auto-fill, minmax(var(--affiche-largeur, 190px), 1fr));
   gap: var(--e4);
 }
 
@@ -655,4 +657,88 @@
   .page {
     padding: var(--e5) var(--e4) var(--e8);
   }
+}
+
+/* ---------------------------------------------------------------- */
+/* Accueil composé                                                   */
+/* ---------------------------------------------------------------- */
+
+.accueil__entete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e5);
+  margin-bottom: var(--e6);
+}
+
+.accueil__texte {
+  margin-bottom: var(--e6);
+}
+
+.carte--categorie {
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--e2);
+  padding: var(--e4);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+}
+
+/* ---------------------------------------------------------------- */
+/* Lecture par un fournisseur tiers                                  */
+/* ---------------------------------------------------------------- */
+
+.lecture-tierce {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  padding: var(--e4);
+  background: var(--fond);
+}
+
+.lecture-tierce__entete {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+}
+
+.lecture-tierce__titre {
+  font-size: 20px;
+  font-weight: 600;
+  margin-right: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lecture-tierce__reprise {
+  font-size: 13px;
+  color: var(--texte-secondaire);
+}
+
+.lecture-tierce__scene {
+  flex: 1;
+  min-height: 0;
+  background: #000000;
+  border-radius: var(--rayon);
+  overflow: hidden;
+}
+
+.lecture-tierce__cadre {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.lecture-tierce__note {
+  font-size: 13px;
+  color: var(--texte-faible);
+  max-width: none;
+}
+
+body.lecture-tierce-ouverte {
+  overflow: hidden;
 }

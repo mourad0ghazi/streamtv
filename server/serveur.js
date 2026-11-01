@@ -66,6 +66,9 @@ const ENTETES_SECURITE = {
     "connect-src 'self' https:",
     "font-src 'self'",
     "form-action 'self'",
+    // Le lecteur tiers vit dans un cadre : sans frame-src, default-src 'self'
+    // le bloque et le bouton Regarder ouvrirait un cadre vide.
+    "frame-src https:",
     "base-uri 'self'",
     `frame-ancestors 'self' ${CADRES_AUTORISES}`
   ].join("; ")

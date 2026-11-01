@@ -1,23 +1,40 @@
 /**
- * Console d'administration : connexion, onglets, panneaux.
- * Chaque onglet porte un lien visible vers sa section de
- * docs/ADMINISTRATION.md ; le test de cohérence vérifie la cible.
+ * Console d'administration : connexion, navigation latérale, panneaux.
+ *
+ * La console ne décide d'aucun droit : elle masque les onglets que la session
+ * ne peut pas ouvrir, et le serveur refuse de toute façon chaque route. Un
+ * onglet caché n'est pas une sécurité, c'est une politesse.
+ *
+ * Chaque panneau reçoit `{ session, recharger, aller }` et rend un nœud. Le
+ * panneau porte lui-même ses appels au serveur : un seul endroit à lire pour
+ * comprendre ce qu'il fait.
  */
 
 import { h, vider, notifier } from "../dom.js";
 import { obtenir, envoyer, ErreurApi, memoriserSession, oublierSession } from "../api.js";
-import { ONGLETS, ROLES } from "./onglets.js";
+import { ONGLETS, ROLES, GROUPES, ongletsVisibles } from "./onglets.js";
 import { panneauSources } from "./sources.js";
 import { panneauStatistiques } from "./statistiques.js";
 import { panneauReglages } from "./reglages.js";
 import { panneauJournal } from "./audit.js";
+import { panneauTableau } from "./tableau.js";
+import { panneauApparence } from "./apparence.js";
+import { panneauLecture } from "./lecture.js";
+import { panneauAccueil } from "./accueil-console.js";
+import { panneauUtilisateurs } from "./utilisateurs.js";
+import { panneauPermissions } from "./permissions.js";
+import { panneauAssistant } from "./assistant.js";
 
 const RACINE = document.getElementById("console");
+const ONGLET_DEFAUT = "tableau";
+
+let session = null;
+let ongletCourant = null;
 
 function lienDocumentation(ancre) {
   return h(
     "a",
-    { class: "lien", href: `/docs/ADMINISTRATION.md#${ancre}`, target: "_blank", rel: "noreferrer" },
+    { class: "lien console__doc", href: `/docs/ADMINISTRATION.md#${ancre}`, target: "_blank", rel: "noreferrer" },
     "Documentation de cet onglet"
   );
 }
@@ -27,12 +44,13 @@ function lienDocumentation(ancre) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Formulaire de connexion. Le code de vérification n'apparaît que si le
- * réglage `code_verification` le demande : sinon, le mot de passe seul suffit,
- * et le champ ne doit pas laisser croire qu'il est obligatoire.
+ * Formulaire de connexion. L'identifiant est facultatif : vide, il désigne le
+ * mot de passe de la console, celui du propriétaire. Un compte nommé prend le
+ * même formulaire, sans changer de page.
  */
 function formulaireConnexion(message, options = {}) {
   const codeRequis = options.codeRequis === true;
+  const identifiant = h("input", { type: "text", id: "identifiant", autocomplete: "username", placeholder: "vide pour le propriétaire" });
   const motDePasse = h("input", { type: "password", id: "mot-de-passe", autocomplete: "current-password", required: true });
   const code = codeRequis
     ? h("input", { type: "text", id: "code", inputmode: "numeric", autocomplete: "one-time-code", maxlength: 6, placeholder: "123456" })
@@ -42,15 +60,16 @@ function formulaireConnexion(message, options = {}) {
 
   const formulaire = h(
     "form",
-    { class: "etat", style: "max-width: 480px" },
+    { class: "etat console__connexion" },
     h("h1", {}, "Console d'administration"),
     h(
       "p",
       {},
       codeRequis
         ? "Renseignez le mot de passe. Sur un appareil non reconnu, le code de vérification affiché par le serveur est aussi demandé."
-        : "Renseignez le mot de passe pour entrer."
+        : "Renseignez le mot de passe pour entrer. Un identifiant n'est utile que pour un compte nommé."
     ),
+    h("div", { class: "champ" }, h("label", { for: "identifiant" }, "Identifiant (facultatif)"), identifiant),
     h("div", { class: "champ" }, h("label", { for: "mot-de-passe" }, "Mot de passe"), motDePasse),
     codeRequis
       ? h(
@@ -71,7 +90,11 @@ function formulaireConnexion(message, options = {}) {
     bouton.disabled = true;
     aide.textContent = "";
     try {
-      const reponse = await envoyer("/api/admin/connexion", { motDePasse: motDePasse.value, code: code ? code.value.trim() : "" });
+      const reponse = await envoyer("/api/admin/connexion", {
+        identifiant: identifiant.value.trim(),
+        motDePasse: motDePasse.value,
+        code: code ? code.value.trim() : ""
+      });
       // Le jeton reste hors du cookie : dans un cadre d'un autre domaine, le
       // cookie `SameSite=Strict` n'est jamais renvoyé et la console bouclait.
       memoriserSession(reponse);
@@ -88,87 +111,125 @@ function formulaireConnexion(message, options = {}) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Coquille de la console                                              */
+/* Coquille                                                            */
 /* ------------------------------------------------------------------ */
 
-let ongletCourant = "sources";
-let session = null;
+function navigation(visibles) {
+  const groupes = GROUPES.map((groupe) => {
+    const items = visibles.filter((o) => o.groupe === groupe);
+    if (!items.length) return null;
+    return h(
+      "div",
+      { class: "console-nav__groupe" },
+      h("span", { class: "console-nav__titre" }, groupe),
+      ...items.map((onglet) =>
+        h(
+          "button",
+          {
+            type: "button",
+            class: `console-nav__item${onglet.cle === ongletCourant ? " console-nav__item--actif" : ""}`,
+            "aria-current": onglet.cle === ongletCourant ? "page" : null,
+            onclick: () => {
+              ongletCourant = onglet.cle;
+              afficher();
+            }
+          },
+          onglet.libelle
+        )
+      )
+    );
+  });
 
-function barreOnglets() {
   return h(
-    "div",
-    { class: "onglets", role: "tablist", "aria-label": "Onglets de la console" },
-    ONGLETS.map((onglet) =>
+    "aside",
+    { class: "console-nav", "aria-label": "Navigation de la console" },
+    h("div", { class: "console-nav__marque" }, h("strong", {}, "StreamTV"), h("span", {}, "Console")),
+    ...groupes,
+    h(
+      "div",
+      { class: "console-nav__pied" },
+      h("span", { class: "console-nav__role" }, ROLES[session.role]?.split(" :")[0] ?? session.role),
+      h("span", { class: "console-nav__compte" }, session.compte?.nom ?? session.role),
       h(
         "button",
         {
+          class: "bouton",
           type: "button",
-          role: "tab",
-          "aria-selected": onglet.cle === ongletCourant ? "true" : "false",
-          onclick: () => {
-            ongletCourant = onglet.cle;
-            afficher();
+          onclick: async () => {
+            await envoyer("/api/admin/deconnexion", {}).catch(() => {});
+            oublierSession();
+            await demarrer();
           }
         },
-        onglet.libelle
+        "Se déconnecter"
       )
     )
   );
 }
 
-async function panneauDemande(onglet) {
+function panneauDemande(onglet) {
+  const contexte = { session, recharger: afficher, aller };
+  if (onglet.cle === "tableau") return panneauTableau(contexte);
+  if (onglet.cle === "accueil") return panneauAccueil(contexte);
+  if (onglet.cle === "apparence") return panneauApparence(contexte);
+  if (onglet.cle === "lecture") return panneauLecture(contexte);
   if (onglet.cle === "sources") return panneauSources();
   if (onglet.cle === "anime") return panneauStatistiques("anime");
   if (onglet.cle === "films") return panneauStatistiques("films");
+  if (onglet.cle === "utilisateurs") return panneauUtilisateurs(contexte);
+  if (onglet.cle === "permissions") return panneauPermissions(contexte);
+  if (onglet.cle === "assistant") return panneauAssistant(contexte);
   if (onglet.cle === "reglages") return panneauReglages();
   return panneauJournal();
 }
 
+function aller(cle) {
+  ongletCourant = cle;
+  window.location.hash = `#${cle}`;
+  return afficher();
+}
+
 async function afficher() {
-  const onglet = ONGLETS.find((o) => o.cle === ongletCourant) ?? ONGLETS[0];
-  vider(RACINE);
+  const visibles = ongletsVisibles(session.permissions ?? []);
+  if (!visibles.length) {
+    vider(RACINE).append(
+      h(
+        "div",
+        { class: "console" },
+        h("div", { class: "etat" }, h("h1", {}, "Aucun onglet accessible"), h("p", {}, "Ce compte n'a aucune permission. Demandez au propriétaire de vous en accorder une."))
+      )
+    );
+    return;
+  }
+  const onglet = visibles.find((o) => o.cle === ongletCourant) ?? visibles[0];
+  ongletCourant = onglet.cle;
 
-  const entete = h(
-    "div",
-    { class: "page__entete" },
+  const zone = h("div", { class: "console-panneau", role: "tabpanel" }, h("p", { class: "attente" }, "Chargement de l'onglet"));
+
+  vider(RACINE).append(
     h(
       "div",
-      {},
-      h("h1", {}, "Console"),
-      h("p", { class: "page__chapeau" }, `Connecté en tant que ${ROLES[session.role] ?? session.role}. Session de ${session.dureeMinutes ?? 60} minutes.`)
-    ),
-    h(
-      "button",
-      {
-        class: "bouton",
-        type: "button",
-        onclick: async () => {
-          await envoyer("/api/admin/deconnexion", {}).catch(() => {});
-          oublierSession();
-          await demarrer();
-        }
-      },
-      "Se déconnecter"
-    )
-  );
-
-  const zone = h("div", { class: "panneau", role: "tabpanel" }, h("p", { class: "attente" }, "Chargement de l'onglet"));
-  RACINE.append(
-    h(
-      "div",
-      { class: "console" },
+      { class: "console-app" },
       session.accesLibre
         ? h(
             "div",
             { class: "bandeau-demo", role: "status" },
             h("strong", {}, "Accès libre"),
-            " · cette console s'ouvre sans mot de passe. Réglages : « Console sans mot de passe » pour la refermer."
+            " · cette console s'ouvre sans mot de passe. Réglage « Console sans mot de passe » pour la refermer."
           )
         : null,
-      entete,
-      barreOnglets(),
-      h("div", { class: "panneau" }, lienDocumentation(onglet.doc)),
-      zone
+      navigation(visibles),
+      h(
+        "main",
+        { class: "console-main" },
+        h(
+          "header",
+          { class: "console-entete" },
+          h("div", {}, h("h1", {}, onglet.libelle), h("p", { class: "console-entete__sous" }, sousTitre(onglet))),
+          h("div", { class: "console-entete__outils" }, lienDocumentation(onglet.doc))
+        ),
+        zone
+      )
     )
   );
 
@@ -178,6 +239,20 @@ async function afficher() {
   } catch (erreur) {
     vider(zone).append(h("p", { class: "aide-message", role: "alert" }, erreur.message));
   }
+}
+
+function sousTitre(onglet) {
+  const sous = {
+    tableau: "L'état du site en un écran : chiffres, santé, activité.",
+    accueil: "L'ordre des sections, leurs titres et leur visibilité.",
+    apparence: "Couleurs, thème, densité et largeur du site public.",
+    lecture: "Fournisseur de flux, attestation de droits et préférences du lecteur.",
+    utilisateurs: "Les comptes, leur rôle et leur état.",
+    permissions: "Ce que chaque rôle peut faire, permission par permission.",
+    assistant: "Diagnostic et changements demandés en français.",
+    films: "Ajout de films par identifiant TMDb, et état des clés."
+  };
+  return sous[onglet.cle] ?? "Console d'administration du catalogue.";
 }
 
 async function demarrer() {
@@ -205,14 +280,24 @@ async function demarrer() {
   }
   session = {
     role: etat.role,
-    dureeMinutes: etat.dureeMinutes,
+    compte: etat.compte && typeof etat.compte === "object" ? etat.compte : null,
+    permissions: etat.permissions ?? [],
     motDePasseParDefaut: etat.motDePasseParDefaut,
     accesLibre: etat.accesLibre === true
   };
+  const demande = window.location.hash.replace("#", "");
+  ongletCourant = ONGLETS.some((o) => o.cle === demande) ? demande : ONGLET_DEFAUT;
   await afficher();
   if (etat.motDePasseParDefaut) {
     notifier("Le mot de passe par défaut est actif : changez-le dans l'onglet Réglages.");
   }
 }
+
+window.addEventListener("hashchange", () => {
+  const demande = window.location.hash.replace("#", "");
+  if (!ONGLETS.some((o) => o.cle === demande) || !session) return;
+  ongletCourant = demande;
+  afficher();
+});
 
 demarrer();

@@ -19,9 +19,17 @@ export const CODES = {
   A10: "Activation ou désactivation d'une source",
   A11: "Modification de la licence d'une source",
   A12: "Import manuel déclenché, avec son résultat",
+  A13: "Modification de la configuration de lecture, clé comprise",
+  A14: "Modification de l'apparence du site",
+  A15: "Modification de la composition de l'accueil",
+  A16: "Ajout ou retrait d'un film venu de TMDb",
   A20: "Modification d'un réglage, avec ancienne et nouvelle valeur",
   A30: "Retrait automatique d'un contenu au plafond de signalements",
-  A40: "Création ou modification d'un rôle et de ses permissions"
+  A40: "Création ou modification d'un rôle et de ses permissions",
+  A41: "Création, modification ou suppression d'un compte",
+  A50: "Changement appliqué par l'assistant, avec son libellé",
+  A51: "Annulation du dernier changement de l'assistant",
+  A52: "Vidage des incidents remontés par les navigateurs"
 };
 
 const TAILLE_MAX = 500;

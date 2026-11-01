@@ -9,50 +9,37 @@
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { randomBytes, scryptSync, timingSafeEqual, createHmac, createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { DOSSIER_DONNEES, ecrireAtomique } from "./magasin.js";
+import * as habilitations from "./permissions.js";
+import * as comptes from "./comptes.js";
+import { comparer as comparerEmpreinte, empreinte, hacher as hacherSecret, jeton as nouveauJeton, nouveauSel } from "./empreintes.js";
 
 export const FICHIER = join(DOSSIER_DONNEES, "secret.json");
 export const MOT_DE_PASSE_PAR_DEFAUT = "streamtv";
 const FENETRE_CODE_MS = 10 * 60 * 1000;
 
-/** Rôles et permissions. Un rôle ne peut que ce qui est listé ici. */
-export const ROLES = {
-  administrateur: {
-    libelle: "Administrateur",
-    permissions: [
-      "sources.lire",
-      "sources.ecrire",
-      "import.lancer",
-      "reglages.lire",
-      "reglages.ecrire",
-      "audit.lire",
-      "roles.ecrire",
-      "statistiques.lire"
-    ]
-  },
-  lecteur: {
-    libelle: "Lecteur",
-    permissions: ["sources.lire", "reglages.lire", "audit.lire", "statistiques.lire"]
-  }
-};
+/**
+ * Rôles et permissions. La liste vit dans `permissions.js`, avec les surcharges
+ * que le propriétaire peut écrire ; ce module ne fait que la consulter, pour
+ * qu'il n'existe qu'une seule définition des droits.
+ */
+export const ROLES = Object.fromEntries(
+  Object.entries(habilitations.ROLES).map(([cle, role]) => [
+    cle,
+    { libelle: role.libelle, resume: role.resume, permissions: habilitations.ROLES[cle].permissions }
+  ])
+);
 
 let secret = null;
 const sessions = new Map();
 
-function empreinte(valeur) {
-  return createHash("sha256").update(String(valeur)).digest("hex");
-}
-
 function hacher(motDePasse, sel) {
-  return scryptSync(motDePasse, sel, 64).toString("hex");
+  return hacherSecret(motDePasse, sel);
 }
 
 function comparerConstant(a, b) {
-  const ta = Buffer.from(String(a));
-  const tb = Buffer.from(String(b));
-  if (ta.length !== tb.length) return false;
-  return timingSafeEqual(ta, tb);
+  return comparerEmpreinte(a, b);
 }
 
 /** Charge le secret, ou le crée au premier démarrage avec le mot de passe par défaut. */
@@ -62,12 +49,12 @@ export async function initialiser() {
     secret = JSON.parse(await readFile(FICHIER, "utf8"));
   } catch (erreur) {
     if (erreur.code !== "ENOENT") throw erreur;
-    const sel = randomBytes(16).toString("hex");
+    const sel = nouveauSel();
     secret = {
       version: 1,
       sel,
       hash: hacher(MOT_DE_PASSE_PAR_DEFAUT, sel),
-      secret: randomBytes(32).toString("hex"),
+      secret: nouveauJeton(),
       defaut: true,
       appareils: []
     };
@@ -107,9 +94,39 @@ async function enregistrerAppareil(jeton) {
  * Vérifie les identifiants. Renvoie {ok, raison, jeton, jetonAppareil}.
  * `raison` est un code court, traduit en français par l'interface.
  */
-export async function connexion({ motDePasse, code, jetonAppareil, dureeMinutes, codeRequis = true }) {
+export async function connexion({ identifiant = "", motDePasse, code, jetonAppareil, dureeMinutes, codeRequis = true }) {
   await initialiser();
   const connu = appareilConnu(jetonAppareil);
+  const nomme = typeof identifiant === "string" ? identifiant.trim().toLowerCase() : "";
+
+  // Deux façons d'entrer : le mot de passe de la console, qui est le
+  // propriétaire, ou un compte nommé. Le second ne remplace pas le premier :
+  // sans identifiant, la porte historique reste la seule.
+  if (nomme && nomme !== "proprietaire") {
+    const resultat = await comptes.verifier({ identifiant: nomme, motDePasse });
+    if (!resultat.ok) {
+      return { ok: false, raison: resultat.raison === "desactive" ? "compte-desactive" : "identifiants" };
+    }
+    if (!connu && codeRequis && String(code ?? "").trim() !== codeVerification()) {
+      return { ok: false, raison: "code" };
+    }
+    let jetonAppareilUtilise = jetonAppareil;
+    let nouvelAppareil = false;
+    if (!connu) {
+      jetonAppareilUtilise = nouveauJeton();
+      await enregistrerAppareil(jetonAppareilUtilise);
+      nouvelAppareil = true;
+    }
+    const jeton = nouveauJeton();
+    const duree = Math.max(5, Number(dureeMinutes) || 60) * 60 * 1000;
+    sessions.set(jeton, {
+      role: resultat.compte.role,
+      compte: resultat.compte.id,
+      effectives: resultat.compte.permissions,
+      expire: Date.now() + duree
+    });
+    return { ok: true, jeton, jetonAppareil: jetonAppareilUtilise, nouvelAppareil, compte: resultat.compte };
+  }
 
   if (typeof motDePasse !== "string" || !comparerConstant(hacher(motDePasse, secret.sel), secret.hash)) {
     return { ok: false, raison: "mot-de-passe" };
@@ -126,15 +143,21 @@ export async function connexion({ motDePasse, code, jetonAppareil, dureeMinutes,
 
   let nouvelAppareil = false;
   if (!connu) {
-    jetonAppareil = randomBytes(32).toString("hex");
+    jetonAppareil = nouveauJeton();
     await enregistrerAppareil(jetonAppareil);
     nouvelAppareil = true;
   }
 
-  const jeton = randomBytes(32).toString("hex");
+  const jeton = nouveauJeton();
   const duree = Math.max(5, Number(dureeMinutes) || 60) * 60 * 1000;
-  sessions.set(jeton, { role: "administrateur", expire: Date.now() + duree });
-  return { ok: true, jeton, jetonAppareil, nouvelAppareil };
+  sessions.set(jeton, {
+    role: "administrateur",
+    compte: "proprietaire",
+    effectives: habilitations.permissionsRole("proprietaire"),
+    proprietaire: true,
+    expire: Date.now() + duree
+  });
+  return { ok: true, jeton, jetonAppareil, nouvelAppareil, proprietaire: true };
 }
 
 export function verifierSession(jeton) {
@@ -153,12 +176,22 @@ export function deconnexion(jeton) {
 }
 
 export function permissions(role) {
-  return ROLES[role]?.permissions ?? [];
+  return habilitations.permissionsRole(role);
 }
 
 /** Un rôle sans permission listée ne peut rien faire. */
 export function autoriser(role, permission) {
-  return permissions(role).includes(permission);
+  return habilitations.permissionConnue(permission) && permissions(role).includes(permission);
+}
+
+/**
+ * Permission d'une session : celle calculée à la connexion, surcharges du
+ * compte comprises. Un propriétaire garde tout, même si un rôle a été réduit.
+ */
+export function autoriserSession(session, permission) {
+  if (!session) return false;
+  if (Array.isArray(session.effectives)) return session.effectives.includes(permission);
+  return autoriser(session.role, permission);
 }
 
 export async function changerMotDePasse(ancien, nouveau) {
@@ -172,7 +205,7 @@ export async function changerMotDePasse(ancien, nouveau) {
   if (nouveau === MOT_DE_PASSE_PAR_DEFAUT) {
     return { ok: false, message: "Le mot de passe par défaut est refusé : choisissez-en un autre." };
   }
-  secret.sel = randomBytes(16).toString("hex");
+  secret.sel = nouveauSel();
   secret.hash = hacher(nouveau, secret.sel);
   secret.defaut = false;
   await ecrireAtomique(FICHIER, secret);

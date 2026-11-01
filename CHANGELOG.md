@@ -1,5 +1,60 @@
 # Journal des versions
 
+## 3.23.0, 1er novembre 2026
+
+### Ce qui change
+
+- **Console complète, en treize onglets.** Tableau de bord, accueil, apparence,
+  lecture et diffusion, sources, animé, films, utilisateurs, permissions,
+  assistant, journal, statistiques, réglages. Navigation latérale groupée ;
+  un onglet que la session ne peut pas ouvrir n'est pas affiché.
+- **Comptes et permissions.** Six rôles (propriétaire, administrateur, éditeur,
+  modérateur, analyste, lecteur) et vingt-deux permissions. Chaque compte peut
+  recevoir une permission en plus ou en moins. Le serveur recalcule les droits à
+  chaque requête ; le propriétaire les garde tous, et l'administrateur ne peut
+  pas perdre la gestion des comptes.
+- **Contrôle d'affichage.** Accent, thème sombre ou clair, densité, rayon,
+  largeur, nombre d'affiches par rangée, animations. Contraste vérifié, texte
+  sur l'accent calculé, feuille servie à `/apparence.css`. Le site applique les
+  changements sans redémarrage, y compris quand la console tourne sur son port.
+- **Accueil composable.** Sections ordonnées, titrées, filtrées, masquables ;
+  neuf types, dont les trois entrées, la reprise, les favoris et les catégories
+  de chaînes. Une section vide ne s'affiche pas.
+- **Lecture et diffusion.** Fournisseur de flux par identifiant TMDb (NexStream
+  par défaut), adresse et chemin du cadre vérifiés côté serveur, clé stockée
+  hors du dépôt et jamais réaffichée, position de reprise transmise en secondes,
+  préférences du lecteur. Un seul bouton Regarder sur la fiche : le serveur
+  décide entre le fournisseur et le fichier du catalogue.
+- **Attestation de droits.** Un flux tiers n'est pas un contenu dont le site
+  peut prouver la licence : la lecture tierce et l'ajout de films TMDb exigent
+  une attestation nommée et datée. Sans elle, rien ne s'ouvre, et la fiche le dit.
+- **Films ajoutés par TMDb.** Ajout par identifiant, métadonnées lues chez TMDb,
+  stockage dans `data/films-ajoutes.json`, fusion à la lecture. Le catalogue
+  livré n'est pas modifié ; un film ajouté ne prétend aucune licence.
+- **Assistant.** Diagnostic de l'installation (licences, affiches, sources,
+  incidents, clés, attestation, contraste, sections vides) avec corrections sûres
+  en un clic, et demandes en français traitées par un moteur de règles local,
+  montrées avant application et annulables.
+- **Incidents navigateur.** Erreurs de script et promesses rejetées remontées,
+  regroupées par signature, bornées à 200 entrées et trois envois par visite.
+
+### Ce qui casse
+
+- `GET /api/etat` annonce `3.23.0`.
+- Aucune dépendance d'exécution n'a été ajoutée : les comptes, l'apparence,
+  l'accueil, la lecture et les incidents vivent dans `data/`, hors du dépôt, et
+  la règle « zéro dépendance » reste vérifiée par un test.
+- La session de console reste en mémoire du processus : un jeton obtenu sur le
+  port du site ne vaut pas sur le port d'administration, et réciproquement. Les
+  réglages, eux, se propagent d'un processus à l'autre sans redémarrage.
+- Un changement de permissions de rôle s'applique aux connexions suivantes.
+
+### Chiffres de cette version
+
+- 577 tests, tous passants.
+- 40 modules publics, 13 fichiers serveur ajoutés ou remaniés, 138 fichiers
+  contrôlés, aucun au-delà de 900 lignes.
+
 ## 3.22.0, 1er novembre 2026
 
 ### Ce qui change

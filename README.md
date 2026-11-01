@@ -9,7 +9,7 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 ```bash
 npm start                 # http://127.0.0.1:3000   le site
 npm run admin             # http://127.0.0.1:3002   l'administration seule
-npm test                  # 490 tests, lanceur intégré de Node
+npm test                  # 577 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
@@ -124,6 +124,46 @@ non officiel), et les flux qui ne sont pas en HTTPS.
 Pour un catalogue cent pour cent vérifié, désactivez la source concernée dans la
 console et n'importez que les diffuseurs que vous avez contrôlés un par un.
 
+## La console d'administration
+
+La console tient sur deux adresses : `/console-f3a91c` sur le port du site, et
+la même sur le port d'administration dédié (`npm run admin`, port 3002), qui
+peut s'ouvrir sans mot de passe pour un poste de confiance.
+
+Elle compte treize onglets, rangés en quatre groupes :
+
+- **Pilotage** : tableau de bord, accueil, apparence, lecture et diffusion ;
+- **Catalogue** : sources, animé, films ;
+- **Personnes** : utilisateurs, permissions ;
+- **Exploitation** : assistant, journal, statistiques, réglages.
+
+Ce qu'on y règle, sans toucher à un fichier :
+
+- **le tableau de bord** : chiffres du catalogue, santé des sources et des
+  licences, activité du journal, incidents remontés par les navigateurs ;
+- **l'accueil** : l'ordre des sections, leur titre, leur filtre, le nombre de
+  cartes, leur visibilité. Une section retirée ne s'affiche plus, une section
+  vide ne laisse pas de trou ;
+- **l'apparence** : accent, thème sombre ou clair, densité, rayon, largeur,
+  nombre d'affiches par rangée, animations. Le serveur produit une feuille de
+  variables à `/apparence.css`, chargée comme un style ordinaire ;
+- **la lecture** : fournisseur de flux par identifiant TMDb, adresse et chemin
+  du cadre, clé stockée hors du dépôt, attestation de droits nommée et datée,
+  préférences du lecteur (qualité, reprise, démarrage sans son) ;
+- **les utilisateurs** : plusieurs comptes, six rôles, une permission par
+  personne en plus ou en moins, désactivation immédiate ;
+- **les permissions** : la matrice complète des rôles et des vingt-deux
+  permissions, avec les deux cases verrouillées qui empêchent de se couper
+  l'accès ;
+- **l'assistant** : un diagnostic de l'installation et des demandes en français
+  (« affiches par rangée à 5 », « masque la section Reprendre la lecture »),
+  montrées avant application et annulables.
+
+L'assistant est un **moteur de règles local** : aucun modèle distant, aucune
+clé, aucun appel réseau. Il lit des mesures réelles, refuse ce qu'il ne comprend
+pas, et passe chaque changement par le module compétent, qui peut le refuser.
+Tout est journalisé (A50 pour l'application, A51 pour l'annulation).
+
 ## Reconstruire le catalogue
 
 ```bash
@@ -217,14 +257,16 @@ fait échouer `npm test`.
 ## Organisation
 
 ```
-server/       serveur HTTP (site et administration), routeur, magasin, import, sonde, audit, auth, réglages
+server/       serveur HTTP (site et administration), routeur, console (routes-console),
+              magasin, import, sonde, audit, auth, comptes, permissions, réglages,
+              apparence, accueil, lecture, incidents, assistant, tableau, tmdb
 public/       interface : coquille, vues, console, styles, service worker
 public/js/partage/catalogue.js
               calcul de catalogue partagé par le serveur et la version statique
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        490 tests, lanceur intégré de Node
+tests/        577 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul
@@ -233,7 +275,8 @@ statique l'appellent tous les deux.
 
 ## Documentation
 
-- `docs/ADMINISTRATION.md` : rôles, onglets, réglages, sources, codes d'audit,
-  procédures et pièges. La console y renvoie depuis chaque onglet.
+- `docs/ADMINISTRATION.md` : rôles et permissions, onglets, réglages, apparence,
+  accueil, lecture et diffusion, sources, codes d'audit, procédures et pièges.
+  La console y renvoie depuis chaque onglet.
 - `DESIGN_RULES.md` : les règles de design tenues par `tests/design.test.js`.
 - `CHANGELOG.md` : ce qui change, ce qui casse, comment migrer.

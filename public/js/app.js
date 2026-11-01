@@ -15,6 +15,8 @@ import * as vueFiche from "./vues/fiche.js";
 import * as vueRecherche from "./vues/recherche.js";
 import * as vueFavoris from "./vues/favoris-vue.js";
 import { etatErreur } from "./composants.js";
+import { appliquerApparence } from "./apparence-client.js";
+import { installerIncidents } from "./incidents-client.js";
 
 const app = {
   etat: { recherche: "" },
@@ -190,6 +192,9 @@ function enregistrerServiceWorker() {
 }
 
 async function demarrer() {
+  // L'apparence arrive du serveur sous forme de feuille de variables. Sans
+  // serveur (démonstration statique), le site garde ses jetons d'origine.
+  appliquerApparence({ version: "" });
   app.racine = document.getElementById("application");
   app.zone = document.getElementById("page");
   try {
@@ -200,6 +205,7 @@ async function demarrer() {
     app.attenteSecondes = 10;
   }
   await rendrePage();
+  installerIncidents();
   enregistrerServiceWorker();
 }
 

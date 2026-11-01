@@ -11,35 +11,203 @@ cohérence refuse une documentation qui ne correspond plus aux onglets.
 
 ## 1. Qui administre
 
-La console connaît deux rôles. Un rôle ne peut que ce que sa liste de
-permissions contient : un rôle sans permission listée ne peut rien faire.
+La console distingue six rôles et vingt-deux permissions nommées. Un rôle donne
+un socle ; chaque compte peut ensuite recevoir une permission en plus (`accorde`)
+ou en moins (`refuse`). Le serveur recalcule les droits effectifs à chaque
+requête : masquer un onglet n'est qu'un confort, le refus vient de la route.
 
-### Administrateur
+### Les six rôles
 
-Permissions listées : `sources.lire`, `sources.ecrire`, `import.lancer`,
-`reglages.lire`, `reglages.ecrire`, `audit.lire`, `roles.ecrire`,
-`statistiques.lire`.
+| Rôle | Ce qu'il peut, en une phrase |
+| ---- | ---------------------------- |
+| Propriétaire | Tout, y compris changer les permissions des rôles. C'est le mot de passe de la console. |
+| Administrateur | Toute l'exploitation, comptes compris, sauf la modification des rôles. |
+| Éditeur | Le catalogue, l'accueil, l'apparence et les publications. |
+| Modérateur | Les sources, leur licence, l'import, le suivi des incidents. |
+| Analyste | Lecture seule : chiffres, journal, incidents, diagnostic. |
+| Lecteur | Le minimum historique : sources, réglages, journal, statistiques. |
 
-Il peut donc consulter l'état des sources, modifier une licence, activer ou
-désactiver une source, changer la priorité, lancer un import, lire et écrire
-les réglages, lire le journal et les statistiques.
+### Les permissions
 
-### Lecteur
+Elles sont rangées en sept groupes, affichés tels quels dans l'onglet
+**Permissions** : Pilotage, Catalogue, Sources et import, Lecture, Apparence et
+accueil, Utilisateurs, Exploitation.
 
-Permissions listées : `sources.lire`, `reglages.lire`, `audit.lire`,
-`statistiques.lire`.
+| Permission | Ce qu'elle ouvre |
+| ---------- | ---------------- |
+| `tableau.lire` | Le tableau de bord |
+| `catalogue.lire` | Les fiches et les chiffres du catalogue |
+| `catalogue.ecrire` | La modification d'une fiche, l'ajout d'un film TMDb |
+| `catalogue.publier` | La publication de la version statique |
+| `sources.lire`, `sources.ecrire` | La consultation et la modification des sources |
+| `import.lancer` | Un import de playlist |
+| `lecture.lire`, `lecture.ecrire` | La configuration du fournisseur et du lecteur |
+| `affichage.lire`, `affichage.ecrire` | L'apparence du site public |
+| `accueil.lire`, `accueil.ecrire` | La composition de l'accueil |
+| `utilisateurs.lire`, `utilisateurs.ecrire` | Les comptes |
+| `roles.ecrire` | Les socles de permissions des rôles |
+| `reglages.lire`, `reglages.ecrire` | Les réglages d'exploitation |
+| `audit.lire`, `statistiques.lire` | Le journal et les statistiques |
+| `incidents.lire` | Les incidents remontés par les navigateurs |
+| `ia.utiliser` | Le diagnostic et les demandes à l'assistant |
 
-Il consulte tout et ne modifie rien. Toute écriture demandée par un lecteur est
-refusée par le serveur avec un message qui nomme la permission manquante.
+### Deux garde-fous
+
+Le propriétaire garde toujours toutes les permissions : ni le fichier de
+surcharges ni l'interface ne peuvent lui en retirer une. L'administrateur garde
+toujours `utilisateurs.ecrire` : sans elle, plus personne ne pourrait créer de
+compte, et le site se retrouverait sans personne pour l'administrer.
 
 ### Ce qu'aucun rôle ne peut faire
 
 Aucun rôle ne peut lire le secret de signature, le condensat du mot de passe ni
 les jetons d'appareil : ces valeurs ne sortent jamais du fichier
-`data/secret.json`. Aucun rôle ne peut supprimer une entrée du journal
+`data/secret.json`, et les empreintes des comptes ne sortent jamais de
+`data/comptes.json`. Aucun rôle ne peut supprimer une entrée du journal
 d'audit ; le journal se vide uniquement à la main, et la procédure le décrit.
+Aucune route ne renvoie une clé d'API ou la clé du fournisseur en entier.
 
 ## 2. Chaque onglet de la console
+
+### Onglet Tableau de bord {#onglet-tableau}
+
+Un écran, quatre blocs : les chiffres du catalogue (chaînes, animés, films,
+sections d'accueil, incidents, comptes), la santé du site (catalogue, sources,
+licences, lecture, incidents, clés, console), l'activité récente lue dans le
+journal, et les incidents côté navigateur.
+
+Chaque ligne de santé porte un état et un chiffre : « 1 486 saines sur 1 492
+actives » plutôt qu'une appréciation. Un état en échec est rouge, un
+avertissement est orange, l'information est grise. Les raccourcis mènent à
+l'accueil, à l'apparence, à la diffusion et à l'assistant.
+
+### Onglet Accueil {#onglet-accueil}
+
+L'accueil est une liste ordonnée de sections. Chaque ligne porte son type, son
+titre, ses réglages (nombre de cartes, genre, nom de rangée, texte), une case
+« visible », deux boutons d'ordre et deux actions : mettre à jour, retirer.
+
+Les types disponibles sont : les trois entrées, la dernière chaîne regardée, la
+reprise de lecture, les favoris, les films ajoutés récemment, les films d'un
+genre, une rangée d'animés, les catégories de chaînes, un bloc de texte. Une
+section qui ne trouve rien ne s'affiche pas sur le site : pas de rangée vide,
+pas de titre orphelin.
+
+L'accueil ne peut pas être vidé : la première section porte le titre de la page.
+Le serveur refuse un titre de moins de deux caractères, un nombre de cartes hors
+de 4 à 24, ou deux sections de même identifiant.
+
+### Onglet Apparence {#onglet-apparence}
+
+Huit réglages, tous validés par le serveur :
+
+| Réglage | Type | Valeurs |
+| ------- | ---- | ------- |
+| Nom du site | texte | 2 à 40 caractères |
+| Couleur d'accent {#apparence-accent} | couleur | `#rrggbb`, contraste minimum de 3 pour 1 avec le fond |
+| Thème {#apparence-theme} | choix | `sombre`, `clair` |
+| Densité {#apparence-densite} | choix | `compacte`, `confort`, `ample` |
+| Rayon des angles {#apparence-rayon} | entier | 0 à 16 pixels |
+| Largeur du contenu {#apparence-largeur} | entier | 1080 à 1600 pixels, multiple de 8 |
+| Affiches par rangée {#apparence-affiches} | entier | 3 à 8 |
+| Animations {#apparence-animations} | booléen | vrai ou faux |
+
+Le serveur ne renvoie pas de CSS libre : il produit une feuille de variables à
+l'adresse `/apparence.css`, que le site charge comme n'importe quel style. Une
+couleur d'accent illisible sur le fond est refusée avec sa mesure de contraste ;
+le texte posé sur l'accent est calculé pour rester lisible.
+
+### Onglet Lecture et diffusion {#onglet-lecture}
+
+Trois décisions, dans cet ordre.
+
+**1. L'attestation de droits.** Un flux tiers n'est pas un contenu du catalogue :
+le site ne peut pas prouver sa licence. La console demande donc une attestation
+nommée et datée. Sans elle, la lecture tierce reste fermée et aucun film ne peut
+être ajouté au catalogue.
+
+**2. Le fournisseur.** Nom affiché, adresse (HTTPS ; HTTP n'est accepté que sur
+la boucle locale), chemin du cadre avec `{tmdbId}` et `{cle}`, clé. La clé est
+stockée dans `data/lecture.json`, jamais versionnée, jamais réaffichée : l'état
+montre seulement un extrait, par exemple `nx_ab…9e7`.
+
+| Réglage | Type | Valeur par défaut |
+| ------- | ---- | ---------------- |
+| Lecture par fournisseur tiers {#lecture-fournisseur} | booléen | faux |
+| Nom du fournisseur {#lecture-nom} | texte | NexStream |
+| Adresse du fournisseur {#lecture-base} | texte | `https://api.codespecters.com` |
+| Chemin du cadre {#lecture-modele} | texte | `/embed/movie/{tmdbId}?apikey={cle}` |
+| Qualité maximale {#lecture-qualite} | choix | automatique |
+| Reprise automatique {#lecture-reprise} | booléen | vrai |
+| Démarrage sans son {#lecture-muet} | booléen | faux |
+
+**3. Les préférences du lecteur.** Elles s'appliquent aux fichiers du catalogue :
+qualité maximale, reprise à la seconde, démarrage sans son.
+
+Le serveur construit l'adresse du cadre, jamais la page : identifiant entier
+positif, remplacement des jetons, vérification stricte du domaine obtenu. Une
+adresse qui sortirait du domaine déclaré est refusée. La position de reprise
+part dans le paramètre `progress`, en secondes.
+
+### Ajout d'un film par TMDb, depuis l'onglet Films
+
+Un film peut être ajouté au site par son identifiant TMDb. Le serveur interroge
+TMDb, récupère le titre, l'année, la durée, les genres et le résumé, et écrit le
+film dans `data/films-ajoutes.json` : le catalogue livré n'est pas modifié, les
+deux listes sont fusionnées à la lecture.
+
+Un film ajouté ne prétend aucune licence : il vit du flux du fournisseur, sous
+l'attestation de droits. C'est pourquoi l'ajout est refusé tant que
+l'attestation n'est pas enregistrée, et pourquoi la fiche affiche une phrase qui
+dit d'où vient le flux. Sans réseau, l'ajout échoue avec un message, et rien
+n'est inventé.
+
+### Onglet Utilisateurs {#onglet-utilisateurs}
+
+La liste des comptes, le propriétaire en tête. Chaque ligne porte le nom,
+l'identifiant, le rôle, l'état, le nombre de permissions effectives et la date de
+la dernière connexion. Trois actions : appliquer un rôle, désactiver ou
+réactiver, supprimer.
+
+Créer un compte demande un identifiant (3 à 24 caractères parmi a-z, 0-9 et
+tiret), un nom, un rôle et un mot de passe d'au moins dix caractères. Le rôle
+propriétaire ne se crée pas : c'est le mot de passe de la console. Un compte
+désactivé est refusé à la connexion, même avec le bon mot de passe.
+
+### Onglet Permissions {#onglet-permissions}
+
+La matrice des rôles et des permissions, groupée comme dans le tableau du
+chapitre 1. Le propriétaire n'y figure pas : sa colonne serait entièrement
+cochée et non modifiable. Les deux cases verrouillées sont signalées : le socle
+de l'administrateur garde `utilisateurs.ecrire`.
+
+Sans la permission `roles.ecrire`, la matrice s'affiche en lecture seule et
+l'enregistrement est refusé par le serveur. Chaque changement est journalisé
+sous le code A40.
+
+### Onglet Assistant {#onglet-assistant}
+
+Deux blocs.
+
+**Le diagnostic** lit l'état réel : mots de passe par défaut, licences
+manquantes, affiches absentes, sources désactivées, incidents répétés, clés
+absentes, lecture tierce ouverte sans attestation, contraste insuffisant,
+sections d'accueil qui ne trouveraient rien, plafond de cartes élevé. Chaque
+constat porte un code, une gravité, une mesure et, quand elle existe, une
+correction sûre applicable en un clic.
+
+**Les demandes en français** passent par un moteur de règles local, exécuté par
+le serveur. Il comprend un vocabulaire fini, affiché sous le champ : nombre
+d'affiches, densité, thème, accent, largeur, rayon, animations, masquer ou
+afficher une section, monter ou descendre une section, plafond de cartes, attente
+du lecteur, reprise automatique, ouverture et fermeture de la lecture tierce,
+diagnostic, correction générale. Il annonce ce qu'il a compris, montre les
+changements, et refuse le reste sans rien inventer. Le dernier lot appliqué
+peut être annulé.
+
+Cet assistant n'appelle aucun service extérieur : pas de modèle distant, pas de
+clé, pas de réseau. Il ne rédige pas de texte libre et ne touche pas au code du
+site.
 
 ### Onglet Sources {#onglet-sources}
 
@@ -107,6 +275,12 @@ clé qui n'existe pas. Un message français dit laquelle est refusée et pourquo
 
 **Quand un chiffre paraît faux.** La page publique garde la valeur affichée au
 moment du chargement : rechargez-la après un changement.
+
+### Onglet Statistiques {#onglet-statistiques}
+
+Les chiffres d'une famille : total, répartition par source, contenus sans
+affiche, sans licence, sans épisode, derniers ajouts. Deux onglets y mènent :
+**Animé** et **Films**.
 
 ### Onglet Journal {#onglet-journal}
 
@@ -380,9 +554,17 @@ elle réapparaîtra au prochain import si elle revient.
 | A10  | Activation ou désactivation d'une source                    |
 | A11  | Modification de la licence d'une source                     |
 | A12  | Import manuel déclenché, avec son résultat                  |
+| A13  | Modification de la configuration de lecture, clé comprise   |
+| A14  | Modification de l'apparence du site                         |
+| A15  | Modification de la composition de l'accueil                 |
+| A16  | Ajout ou retrait d'un film venu de TMDb                     |
 | A20  | Modification d'un réglage, avec ancienne et nouvelle valeur |
 | A30  | Retrait automatique d'un contenu au plafond de signalements |
 | A40  | Création ou modification d'un rôle et de ses permissions    |
+| A41  | Création, modification ou suppression d'un compte           |
+| A50  | Changement appliqué par l'assistant, avec son libellé       |
+| A51  | Annulation du dernier changement de l'assistant             |
+| A52  | Vidage des incidents remontés par les navigateurs           |
 
 Un code publié ne change ni de numéro ni de sens. Un code jamais utilisé peut
 disparaître de ce tableau, jamais être réaffecté.
@@ -421,12 +603,15 @@ appareils déjà reconnus restent reconnus.
 
 ### Ajouter un collaborateur
 
-Il n'existe pas de compte par personne : la console s'ouvre avec un mot de passe
-commun et, pour un appareil non reconnu, le code de vérification affiché par le
-serveur. Pour donner un accès, transmettez le mot de passe de vive voix et
-faites saisir le code au moment de la première connexion. Pour retirer tous les
-appareils, supprimez `data/secret.json` et redémarrez : un nouveau mot de passe
-par défaut est créé, à changer aussitôt.
+Depuis l'onglet **Utilisateurs**, créez un compte : identifiant, nom, rôle, mot
+de passe d'au moins dix caractères. Communiquez le mot de passe de vive voix,
+jamais par un canal qui le garde. La personne se connecte avec son identifiant
+et son mot de passe ; sur un appareil inconnu, le code de vérification reste
+demandé si le réglage l'exige.
+
+Pour retirer un accès, désactivez le compte ou supprimez-le : la suppression est
+immédiate et journalisée (A41). Le propriétaire, lui, ne se supprime pas ; son
+mot de passe se change dans l'onglet **Réglages**.
 
 ### Sauvegarder
 
@@ -506,3 +691,35 @@ arrêté.
 **Le cache du navigateur.** Chaque module porte la version dans son adresse.
 Une page qui semble ancienne après une mise à jour signale que
 `npm run versionner` n'a pas été lancé : `npm run versionner:check` le dit.
+
+### La clé du fournisseur est visible dans le cadre
+
+Le fournisseur exige sa clé dans l'adresse du cadre. Cette adresse est chargée
+par le navigateur du visiteur : la clé y est donc visible, quel que soit le soin
+apporté au reste. Le serveur la masque partout ailleurs (état, journal, réponse
+d'API) et ne la réécrit jamais en clair, mais il ne peut pas la cacher à un
+cadre qui doit la recevoir. C'est une raison de plus pour préférer une clé
+restreinte par domaine et de la renouveler si elle fuite.
+
+### Le fournisseur peut imposer un domaine
+
+Une clé liée à un domaine ne fonctionne que depuis ce domaine. Servie depuis un
+aperçu, une machine locale ou un autre nom, elle peut renvoyer un cadre vide :
+ce n'est pas une panne du site, c'est la restriction du fournisseur. Le panneau
+**Lecture et diffusion** le rappelle parmi ses avertissements.
+
+### Deux processus, un seul dossier de données
+
+Le site et le port d'administration sont deux processus. Les réglages, les
+comptes, l'apparence, l'accueil et les incidents sont relus quand le fichier
+change : une modification faite dans la console s'applique au site sans
+redémarrage. En revanche, les sessions de console vivent en mémoire de chaque
+processus : un jeton obtenu sur un port ne vaut pas sur l'autre.
+
+### L'assistant ne devine pas
+
+L'assistant applique un vocabulaire fini, affiché dans son onglet. Une phrase
+hors vocabulaire est refusée, avec la liste des formulations comprises. Ce n'est
+pas une limite à contourner : c'est ce qui permet de savoir exactement ce qui
+sera changé avant de l'appliquer. Aucun modèle distant n'est appelé, aucune clé
+n'est nécessaire, et rien ne sort du serveur.
