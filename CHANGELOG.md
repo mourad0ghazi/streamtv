@@ -55,6 +55,14 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 - **Page Favoris** : `/favoris` était connue de la coquille et de la
   navigation, mais absente des pages rendues par le serveur ; le lien menait à
   un 404. La route est servie, deux tests la couvrent.
+- **Publication depuis GitHub** : `.github/workflows/pages.yml` construit la
+  démonstration, la contrôle et la publie sur GitHub Pages à chaque poussée.
+  Le dépôt de projet vivant sous `/streamtv/`, une base de publication traverse
+  désormais toute l'interface : `public/js/partage/base.js` préfixe les liens,
+  les feuilles et les modules, le routeur retire la base avant de comparer, le
+  service worker déduit la sienne de sa propre adresse. Sans quoi le site
+  s'afficherait parfaitement à la racine et donnerait des pages blanches en
+  ligne. Chaque route a son dossier pour qu'un accès direct réponde 200.
 - **Service worker** : `public/sw.js` existait et préchargeait tout, mais aucun
   code ne l'enregistrait : le mode hors ligne et l'installation ne prenaient
   jamais effet. L'enregistrement vit dans `app.js`, hors ligne d'en-tête, et son
@@ -95,6 +103,6 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 ### Chiffres de cette version
 
-- 414 tests, tous passants, lanceur `node --test`.
+- 431 tests, tous passants, lanceur `node --test`.
 - 8 199 chaînes, 18 catégories, 179 pays, 180 sources déclarées, 515 playlists déclarées.
 - 3 animés, 4 films, tous sous licence affichée.

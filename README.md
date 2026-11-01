@@ -140,15 +140,38 @@ pays est visible dans la console, le détail complet est dans le fichier.
 ## Publier la démonstration statique
 
 ```bash
-npm run statique                 # construit _site/
-node scripts/construire-statique.mjs --servir   # puis http://127.0.0.1:3001
+npm run statique                 # construit _site/ à la racine du domaine
+npm run statique:pages           # construit _site/ sous /streamtv/
+npm run statique:servir          # puis http://127.0.0.1:3001
 ```
 
 `_site/` contient une version en lecture seule : mêmes données, même interface,
-sans console ni import, avec un bandeau de démonstration sur chaque page. Le
-fichier `.nojekyll` évite le traitement Jekyll de GitHub Pages. Publier consiste
-à pousser le contenu de `_site/` sur la branche servie par GitHub Pages, puis à
-rouvrir chaque page à l'adresse publiée.
+sans console ni import, avec un bandeau de démonstration sur chaque page.
+
+**Publiée depuis GitHub.** `.github/workflows/pages.yml` construit et publie le
+site à chaque poussée : version des modules, longueur des fichiers et tests
+passent d'abord, la construction suit, le déploiement ferme la marche. Le seul
+réglage à faire une fois est dans le dépôt : **Settings → Pages → Source :
+GitHub Actions**. Rien de construit n'est versionné.
+
+L'adresse dépend du type de dépôt :
+
+| Dépôt | Adresse | Base |
+| ----- | ------- | ---- |
+| de projet, `monDépôt` | `https://<compte>.github.io/monDépôt/` | `/monDépôt` |
+| de compte, `<compte>.github.io` | `https://<compte>.github.io/` | vide |
+
+C'est ce que calcule le workflow. Un dépôt de projet vit sous un sous-chemin :
+toutes les adresses internes passent alors par `public/js/partage/base.js`, qui
+reçoit la base dans la page publiée (`window.STREAMTV_BASE`), préfixe les liens
+créés par `h()`, préfixe les feuilles et les modules, et retire la base avant que
+le routeur ne compare le chemin. Le service worker déduit la sienne de sa propre
+adresse et précharge la liste sous cette base. Sans cela, le même code
+fonctionnerait à la racine et donnerait des pages blanches sous `/streamtv/`.
+
+Chaque route a aussi son dossier (`_site/chaines/index.html`, etc.) pour qu'un
+accès direct réponde 200 ; une fiche de chaîne tombe sur `404.html`, qui est la
+même coquille, et s'ouvre quand même.
 
 ## Organisation
 
@@ -160,7 +183,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        414 tests, lanceur intégré de Node
+tests/        431 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

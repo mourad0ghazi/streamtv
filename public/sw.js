@@ -7,6 +7,16 @@
 const VERSION = "3.18.0";
 const CACHE = `streamtv-${VERSION}`;
 
+/**
+ * Base de publication : vide à la racine, « /streamtv » sur un dépôt de projet
+ * GitHub Pages. Elle se déduit de l'adresse du service worker, donc la liste de
+ * préchargement reste écrite en adresses absolues et ne bouge pas d'un
+ * hébergement à l'autre.
+ */
+const BASE = self.location.pathname.replace(/\/sw\.js$/, "");
+
+const adresse = (chemin) => `${BASE}${chemin}`;
+
 const PRECACHE = [
   "/",
   "/chaines",
@@ -30,6 +40,7 @@ const PRECACHE = [
   "/js/dom.js?v=3.18.0",
   "/js/favoris.js?v=3.18.0",
   "/js/lecteur.js?v=3.18.0",
+  "/js/partage/base.js?v=3.18.0",
   "/js/partage/catalogue.js?v=3.18.0",
   "/js/progression.js?v=3.18.0",
   "/js/vues/accueil.js?v=3.18.0",
@@ -46,7 +57,14 @@ const PRECACHE = [
 
 self.addEventListener("install", (evenement) => {
   evenement.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE)
+      .then((cache) =>
+        // Une entrée manquante ne doit pas annuler le préchargement entier :
+        // le mode hors ligne vaut mieux incomplet que refusé.
+        Promise.allSettled(PRECACHE.map((chemin) => cache.add(adresse(chemin))))
+      )
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -73,6 +91,6 @@ self.addEventListener("fetch", (evenement) => {
         caches.open(CACHE).then((cache) => cache.put(requete, copie)).catch(() => {});
         return reponse;
       })
-      .catch(() => caches.match(requete).then((reponse) => reponse ?? caches.match("/")))
+      .catch(() => caches.match(requete).then((reponse) => reponse ?? caches.match(adresse("/"))))
   );
 });

@@ -13,11 +13,15 @@
 
 import { readFile, writeFile, mkdir, cp, rm } from "node:fs/promises";
 import { createServer } from "node:http";
-import { join, extname, dirname } from "node:path";
+import { join, extname, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { normaliserBase } from "../public/js/partage/base.js";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SORTIE = join(RACINE, "_site");
+/** Routes de pages pré-rendues : un dossier par route, pour qu'un accès direct réponde 200. */
+const ROUTES = ["chaines", "anime", "films", "recherche", "favoris"];
 const PUBLIC = join(RACINE, "public");
 const DONNEES = join(RACINE, "data");
 
@@ -38,11 +42,63 @@ async function lireJson(nom, replis) {
   }
 }
 
-async function construire() {
-  await rm(SORTIE, { recursive: true, force: true });
-  await mkdir(SORTIE, { recursive: true });
+/** Valeur d'une option `--nom valeur` ou `--nom=valeur`, sinon undefined. */
+export function option(nom) {
+  const prefixe = `--${nom}=`;
+  const argus = process.argv.slice(2);
+  for (let i = 0; i < argus.length; i += 1) {
+    if (argus[i].startsWith(prefixe)) return argus[i].slice(prefixe.length);
+    if (argus[i] === `--${nom}`) return argus[i + 1] ?? "";
+  }
+  return undefined;
+}
 
-  await cp(PUBLIC, SORTIE, {
+/**
+ * Préfixe les adresses absolues de la page par la base de publication. Les
+ * ancres (`#page`) et les adresses complètes ne sont pas touchées.
+ */
+export function prefixerHtml(html, base = "") {
+  if (!base) return html;
+  return html.replace(/(\s(?:href|src)=")\/(?!\/)/g, `$1${base}/`);
+}
+
+/**
+ * Page de la coquille, prête à publier : adresses préfixées, drapeaux de la
+ * démonstration inscrits dans la page (la politique de sécurité du serveur
+ * dynamique interdit le script en ligne, GitHub Pages ne l'interdit pas).
+ */
+export function pagePour(html, base = "") {
+  const marque = '<script type="module"';
+  const drapeaux = `<script>window.STREAMTV_STATIQUE = true; window.STREAMTV_BASE = ${JSON.stringify(base)};</script>\n    `;
+  return prefixerHtml(html, base).replace(marque, drapeaux + marque);
+}
+
+/** Manifeste de l'application, avec les adresses de la base. */
+export function manifestePour(texte, base = "") {
+  const manifeste = JSON.parse(texte);
+  const prefixe = (valeur) => (typeof valeur === "string" && valeur.startsWith("/") ? `${base}${valeur}` : valeur);
+  return (
+    JSON.stringify(
+      {
+        ...manifeste,
+        start_url: prefixe(manifeste.start_url ?? "/"),
+        scope: prefixe(manifeste.scope ?? "/"),
+        icons: (manifeste.icons ?? []).map((icone) => ({ ...icone, src: prefixe(icone.src) }))
+      },
+      null,
+      2
+    ) + "\n"
+  );
+}
+
+async function construire() {
+  const base = normaliserBase(option("base") ?? "");
+  const sortie = option("sortie") ? resolve(option("sortie")) : SORTIE;
+
+  await rm(sortie, { recursive: true, force: true });
+  await mkdir(sortie, { recursive: true });
+
+  await cp(PUBLIC, sortie, {
     recursive: true,
     filter: (source) => !source.includes(`${join(PUBLIC, "js", "admin")}`) && !source.endsWith("console.html")
   });
@@ -54,9 +110,9 @@ async function construire() {
     lireJson("sources.json", { sources: [] })
   ]);
 
-  await mkdir(join(SORTIE, "statique"), { recursive: true });
+  await mkdir(join(sortie, "statique"), { recursive: true });
   await writeFile(
-    join(SORTIE, "statique", "donnees.json"),
+    join(sortie, "statique", "donnees.json"),
     JSON.stringify(
       {
         date: new Date().toISOString(),
@@ -72,23 +128,28 @@ async function construire() {
     ) + "\n"
   );
 
-  const index = await readFile(join(SORTIE, "index.html"), "utf8");
-  const marque = '<script type="module" src="/js/app.js';
-  const injecte = index.replace(marque, '<script>window.STREAMTV_STATIQUE = true;</script>\n    ' + marque);
-  await writeFile(join(SORTIE, "index.html"), injecte);
-  await writeFile(join(SORTIE, "404.html"), injecte);
-  await writeFile(join(SORTIE, ".nojekyll"), "");
+  const page = pagePour(await readFile(join(sortie, "index.html"), "utf8"), base);
+  await writeFile(join(sortie, "index.html"), page);
+  await writeFile(join(sortie, "404.html"), page);
+  for (const route of ROUTES) {
+    await mkdir(join(sortie, route), { recursive: true });
+    await writeFile(join(sortie, route, "index.html"), page);
+  }
+  await writeFile(join(sortie, "manifeste.webmanifest"), manifestePour(await readFile(join(PUBLIC, "manifeste.webmanifest"), "utf8"), base));
+  await writeFile(join(sortie, ".nojekyll"), "");
 
-  const octets = (await readFile(join(SORTIE, "statique", "donnees.json"))).length;
-  console.log(`Démonstration construite dans _site/ : ${chaines.contenus?.length ?? 0} chaînes, ${anime.contenus?.length ?? 0} animés, ${films.contenus?.length ?? 0} films.`);
+  const octets = (await readFile(join(sortie, "statique", "donnees.json"))).length;
+  console.log(`Démonstration construite dans ${sortie} : ${chaines.contenus?.length ?? 0} chaînes, ${anime.contenus?.length ?? 0} animés, ${films.contenus?.length ?? 0} films.`);
   console.log(`Données statiques : ${(octets / 1024).toFixed(0)} ko.`);
+  console.log(base ? `Publiée sous la base ${base}.` : "Publiée à la racine du domaine.");
 }
 
 /** Petit serveur de vérification, pour contrôler _site/ avant publication. */
-function servir(port = 3001) {
+function servir(port = 3001, sortie = SORTIE, base = "") {
   const serveur = createServer(async (requete, reponse) => {
-    const chemin = decodeURIComponent(new URL(requete.url, "http://localhost").pathname);
-    const candidats = [join(SORTIE, chemin), join(SORTIE, chemin, "index.html"), join(SORTIE, "index.html")];
+    const brut = decodeURIComponent(new URL(requete.url, "http://localhost").pathname);
+    const chemin = base && (brut === base || brut.startsWith(`${base}/`)) ? brut.slice(base.length) || "/" : brut;
+    const candidats = [join(sortie, chemin), join(sortie, chemin, "index.html"), join(sortie, "index.html")];
     for (const candidat of candidats) {
       try {
         const corps = await readFile(candidat);
@@ -101,9 +162,16 @@ function servir(port = 3001) {
     reponse.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
     reponse.end("Introuvable");
   });
-  serveur.listen(port, "0.0.0.0", () => console.log(`Démonstration statique : http://127.0.0.1:${port}`));
+  serveur.listen(port, "0.0.0.0", () => console.log(`Démonstration statique : http://127.0.0.1:${port}${base}/`));
   return serveur;
 }
 
-await construire();
-if (process.argv.includes("--servir")) servir(Number(process.env.PORT || 3001));
+const LANCE_DIRECTEMENT =
+  process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (LANCE_DIRECTEMENT) {
+  await construire();
+  if (process.argv.includes("--servir")) {
+    servir(Number(process.env.PORT || 3001), option("sortie") ? resolve(option("sortie")) : SORTIE, normaliserBase(option("base") ?? ""));
+  }
+}

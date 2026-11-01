@@ -335,6 +335,12 @@ douze dernières vivent dans le stockage local du navigateur, sous la clé
 panne. Aucune de ces valeurs ne remonte au serveur, et le journal d'audit n'en
 garde aucune trace.
 
+**La démonstration publiée n'a pas de console.** GitHub Pages sert un dossier de
+fichiers : aucun serveur, donc aucune authentification, aucun import, aucun
+réglage. Ne cherchez pas `/console-f3a91c` sur l'adresse publiée, elle n'y
+existe pas et ne doit pas y exister. La console vit uniquement sur le serveur
+Node, chez vous.
+
 **Le service worker retient la dernière version vue.** Il sert le réseau
 d'abord, donc une mise à jour se voit au rechargement suivant. Si un poste reste
 bloqué sur une version ancienne, videz les données du site : le cache porte le

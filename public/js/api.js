@@ -8,6 +8,7 @@
  */
 
 import * as catalogue from "./partage/catalogue.js";
+import { avecBase } from "./partage/base.js";
 
 const DELAI_MS = 12000;
 
@@ -26,7 +27,7 @@ async function chargerStatique() {
   const controleur = new AbortController();
   const minuteur = setTimeout(() => controleur.abort(), DELAI_MS);
   try {
-    const reponse = await fetch("/statique/donnees.json", { signal: controleur.signal });
+    const reponse = await fetch(avecBase("/statique/donnees.json"), { signal: controleur.signal });
     if (!reponse.ok) throw new Error(String(reponse.status));
     statique = await reponse.json();
     return statique;

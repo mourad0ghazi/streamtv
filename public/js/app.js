@@ -6,6 +6,7 @@
 
 import { h, vider, icone } from "./dom.js";
 import { obtenir } from "./api.js";
+import { avecBase, cheminCourant, sansBase } from "./partage/base.js";
 import * as vueAccueil from "./vues/accueil.js";
 import * as vueChaines from "./vues/chaines.js";
 import * as vueAnime from "./vues/anime.js";
@@ -116,7 +117,7 @@ function parametresEnEtat(recherche) {
 }
 
 async function rendrePage() {
-  const chemin = window.location.pathname || "/";
+  const chemin = cheminCourant();
   const correspondance = analyserChemin(chemin);
   const zone = app.zone;
 
@@ -153,7 +154,7 @@ function urlPour(chemin, etat) {
 }
 
 app.aller = (chemin, etat, options = {}) => {
-  const url = urlPour(chemin, etat);
+  const url = avecBase(urlPour(chemin, etat));
   if (options.remplacer) window.history.replaceState({}, "", url);
   else window.history.pushState({}, "", url);
   return rendrePage();
@@ -171,7 +172,7 @@ function intercepterLien(evenement, lien) {
   const url = new URL(lien.href, window.location.origin);
   if (url.origin !== window.location.origin) return;
   evenement.preventDefault();
-  app.aller(url.pathname, parametresEnEtat(url.searchParams));
+  app.aller(sansBase(url.pathname), parametresEnEtat(url.searchParams));
 }
 
 window.addEventListener("popstate", () => rendrePage());
@@ -185,7 +186,7 @@ window.addEventListener("popstate", () => rendrePage());
  */
 function enregistrerServiceWorker() {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-  navigator.serviceWorker.register("/sw.js").catch(() => {});
+  navigator.serviceWorker.register(avecBase("/sw.js")).catch(() => {});
 }
 
 async function demarrer() {

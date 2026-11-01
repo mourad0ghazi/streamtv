@@ -3,9 +3,15 @@
  * Le rendu est écrit à la main : aucun cadre, aucun moteur de gabarit.
  */
 
+import { avecBase } from "./partage/base.js";
+
 /**
  * Crée un élément. `attributs` accepte class, dataset, aria, on* et tout
  * attribut HTML ; les enfants sont des nœuds ou des chaînes.
+ *
+ * Les adresses internes (`href`, `src`) reçoivent la base de publication au
+ * passage : aucune vue n'a à savoir si le site vit à la racine ou sous
+ * `/streamtv/`.
  */
 export function h(balise, attributs = {}, ...enfants) {
   const element = document.createElement(balise);
@@ -16,6 +22,7 @@ export function h(balise, attributs = {}, ...enfants) {
     else if (cle.startsWith("on") && typeof valeur === "function") {
       element.addEventListener(cle.slice(2).toLowerCase(), valeur);
     } else if (valeur === true) element.setAttribute(cle, "");
+    else if (cle === "href" || cle === "src") element.setAttribute(cle, avecBase(String(valeur)));
     else element.setAttribute(cle, String(valeur));
   }
   for (const enfant of enfants.flat(Infinity)) {

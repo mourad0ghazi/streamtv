@@ -1,0 +1,81 @@
+# Publication de la démonstration statique sur GitHub Pages.
+#
+# Le site est construit à chaque poussée, contrôlé avant publication, puis
+# publié comme artefact Pages. Aucune dépendance n'est installée : le projet
+# n'en a aucune.
+#
+# La base dépend du type de Pages :
+#   dépôt de projet   https://<compte>.github.io/<dépôt>/   → base « /<dépôt> »
+#   dépôt de compte   https://<compte>.github.io/          → base vide
+
+name: Publier la démonstration
+
+on:
+  push:
+    branches:
+      - arena/4716de68-streamtv
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  construire:
+    name: Contrôler et construire
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Vérifier la version des modules
+        run: node scripts/versionner.js --verifier
+
+      - name: Contrôler la longueur des fichiers
+        run: node scripts/controle-lignes.js
+
+      - name: Lancer les tests
+        run: npm test
+
+      - name: Construire la démonstration
+        run: |
+          depot="${GITHUB_REPOSITORY#*/}"
+          if [ "$depot" = "${GITHUB_REPOSITORY_OWNER}.github.io" ]; then
+            base=""
+          else
+            base="/$depot"
+          fi
+          echo "Base de publication : ${base:-/}"
+          node scripts/construire-statique.mjs --base "$base"
+          echo "BASE=$base" >> "$GITHUB_ENV"
+
+      - name: Préparer Pages
+        uses: actions/configure-pages@v5
+
+      - name: Envoyer l'artefact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deployer:
+    name: Déployer
+    needs: construire
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - name: Déployer sur Pages
+        id: deploiement
+        uses: actions/deploy-pages@v4

@@ -1,6 +1,7 @@
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
-import { readFile, access } from "node:fs/promises";
+import { readFile, access, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join, dirname } from "node:path";
@@ -57,4 +58,42 @@ test("la démonstration annonce son état de lecture seule", async () => {
 
 test("la démonstration porte un fichier .nojekyll pour GitHub Pages", async () => {
   assert.equal(await existe(".nojekyll"), true);
+});
+
+test("chaque route a son dossier, pour un accès direct sans passer par la 404", async () => {
+  for (const route of ["chaines", "anime", "films", "recherche", "favoris"]) {
+    assert.equal(await existe(`${route}/index.html`), true, `${route}/index.html manque`);
+  }
+});
+
+test("la démonstration se publie sous /streamtv/ pour GitHub Pages", async () => {
+  const dossier = await mkdtemp(join(tmpdir(), "streamtv-base-"));
+  try {
+    await executer(process.execPath, [join("scripts", "construire-statique.mjs"), "--base", "/streamtv", "--sortie", dossier], { cwd: RACINE });
+
+    const html = await readFile(join(dossier, "index.html"), "utf8");
+    assert.match(html, /href="\/streamtv\/css\/base\.css\?v=3\.18\.0"/);
+    assert.match(html, /src="\/streamtv\/js\/app\.js\?v=3\.18\.0"/);
+    assert.match(html, /window\.STREAMTV_BASE = "\/streamtv"/);
+    assert.equal(/href="\/(?!streamtv|#)/.test(html), false, "une adresse absolue est restée hors base");
+
+    const manifeste = JSON.parse(await readFile(join(dossier, "manifeste.webmanifest"), "utf8"));
+    assert.equal(manifeste.start_url, "/streamtv/");
+    assert.equal(manifeste.scope, "/streamtv/");
+
+    for (const fichier of ["404.html", "chaines/index.html", "js/zapping.js", "statique/donnees.json", ".nojekyll"]) {
+      await access(join(dossier, fichier));
+    }
+
+    // Aucune adresse de la page ne doit mener à un 404 une fois publiée.
+    const adresses = [...html.matchAll(/(?:href|src)="(\/[^"]*)"/g)].map((m) => m[1].split("?")[0].split("#")[0]);
+    assert.ok(adresses.length >= 6, "la page publiée ne référence presque rien");
+    for (const adresse of adresses) {
+      assert.ok(adresse.startsWith("/streamtv/"), `${adresse} sort de la base`);
+      const relatif = adresse.slice("/streamtv/".length) || "index.html";
+      await access(join(dossier, relatif.endsWith("/") ? `${relatif}index.html` : relatif));
+    }
+  } finally {
+    await rm(dossier, { recursive: true, force: true });
+  }
 });

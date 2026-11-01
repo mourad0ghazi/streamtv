@@ -33,7 +33,7 @@ await new Promise((resoudre) => setTimeout(resoudre, 60));
 
 test("la coquille enregistre le service worker, sans script en ligne", async () => {
   const source = await readFile(join(RACINE, "public", "js", "app.js"), "utf8");
-  assert.match(source, /serviceWorker\.register\("\/sw\.js"\)/, "le service worker n'est jamais enregistré");
+  assert.match(source, /serviceWorker\.register\(avecBase\("\/sw\.js"\)\)/, "le service worker n'est jamais enregistré, ou sans la base de publication");
   const html = await readFile(join(RACINE, "public", "index.html"), "utf8");
   assert.equal(/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/.test(html), false, "un script en ligne serait bloqué par la politique de sécurité");
 });
