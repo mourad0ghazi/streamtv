@@ -35,7 +35,14 @@ const TYPES = {
 };
 
 /** Pages rendues par la coquille cliente : toutes renvoient index.html. */
-const PAGES = [/^\/$/, /^\/chaines(\/[\w-]+)?$/, /^\/anime(\/[\w-]+)?$/, /^\/films(\/[\w-]+)?$/, /^\/recherche$/];
+const PAGES = [
+  /^\/$/,
+  /^\/chaines(\/[\w-]+)?$/,
+  /^\/anime(\/[\w-]+)?$/,
+  /^\/films(\/[\w-]+)?$/,
+  /^\/recherche$/,
+  /^\/favoris$/
+];
 
 const ENTETES_SECURITE = {
   "x-content-type-options": "nosniff",

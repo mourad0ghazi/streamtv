@@ -30,11 +30,22 @@ test("la page d'accueil est servie en HTML", async () => {
   assert.match(corps, /StreamTV/);
 });
 
-test("les trois routes de pages répondent sans rechargement de fichier", async () => {
-  for (const chemin of ["/chaines", "/anime", "/films", "/recherche"]) {
+test("les routes de pages répondent sans rechargement de fichier", async () => {
+  for (const chemin of ["/chaines", "/anime", "/films", "/recherche", "/favoris"]) {
     const { statut } = await lire(chemin);
     assert.equal(statut, 200, `${chemin} devrait répondre 200`);
   }
+});
+
+test("une page de fiche de chaîne est servie par la coquille", async () => {
+  const { statut, corps } = await lire("/chaines/ch-00187");
+  assert.equal(statut, 200);
+  assert.match(corps, /StreamTV/);
+});
+
+test("une page inconnue reste une erreur, pas une coquille", async () => {
+  const { statut } = await lire("/favoris-de-lecture");
+  assert.equal(statut, 404);
 });
 
 test("l'état annonce les comptes réels du catalogue", async () => {

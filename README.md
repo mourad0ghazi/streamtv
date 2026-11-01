@@ -8,7 +8,7 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 
 ```bash
 npm start                 # http://127.0.0.1:3000
-npm test                  # 409 tests, lanceur intégré de Node
+npm test                  # 411 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
@@ -153,7 +153,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        409 tests, lanceur intégré de Node
+tests/        411 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

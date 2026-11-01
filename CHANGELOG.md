@@ -85,6 +85,6 @@ Le site passe d'un catalogue de chaînes à un catalogue à trois entrées.
 
 ### Chiffres de cette version
 
-- 409 tests, tous passants, lanceur `node --test`.
+- 411 tests, tous passants, lanceur `node --test`.
 - 8 199 chaînes, 18 catégories, 179 pays, 180 sources déclarées, 515 playlists déclarées.
 - 3 animés, 4 films, tous sous licence affichée.
