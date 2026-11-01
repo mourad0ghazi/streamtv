@@ -16,7 +16,7 @@
     "controle:lignes": "node scripts/controle-lignes.js",
     "importer": "node scripts/importer.mjs",
     "statique": "node scripts/construire-statique.mjs",
-    "statique:pages": "node scripts/construire-statique.mjs --base /streamtv",
+    "publier": "node scripts/construire-statique.mjs --base /streamtv --sortie docs --conserver ADMINISTRATION.md",
     "statique:servir": "node scripts/construire-statique.mjs --servir",
     "verify": "node scripts/verify.js"
   }

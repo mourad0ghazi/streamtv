@@ -95,6 +95,17 @@ async function construire() {
   const base = normaliserBase(option("base") ?? "");
   const sortie = option("sortie") ? resolve(option("sortie")) : SORTIE;
 
+  // Le dossier publié peut aussi contenir la documentation : on la met de côté
+  // le temps de la reconstruction, sinon `rm` l'emporterait.
+  const gardees = new Map();
+  for (const nom of (option("conserver") ?? "").split(",").map((n) => n.trim()).filter(Boolean)) {
+    try {
+      gardees.set(nom, await readFile(join(sortie, nom)));
+    } catch {
+      /* fichier absent : rien à conserver */
+    }
+  }
+
   await rm(sortie, { recursive: true, force: true });
   await mkdir(sortie, { recursive: true });
 
@@ -115,7 +126,9 @@ async function construire() {
     join(sortie, "statique", "donnees.json"),
     JSON.stringify(
       {
-        date: new Date().toISOString(),
+        // Date du relevé, pas celle de la construction : deux constructions
+        // des mêmes données donnent le même fichier, donc aucun diff inutile.
+        date: chaines.date ?? new Date().toISOString(),
         plafondCartes: 24,
         attenteLecteur: 10,
         chaines: chaines.contenus ?? [],
@@ -137,6 +150,7 @@ async function construire() {
   }
   await writeFile(join(sortie, "manifeste.webmanifest"), manifestePour(await readFile(join(PUBLIC, "manifeste.webmanifest"), "utf8"), base));
   await writeFile(join(sortie, ".nojekyll"), "");
+  for (const [nom, corps] of gardees) await writeFile(join(sortie, nom), corps);
 
   const octets = (await readFile(join(sortie, "statique", "donnees.json"))).length;
   console.log(`Démonstration construite dans ${sortie} : ${chaines.contenus?.length ?? 0} chaînes, ${anime.contenus?.length ?? 0} animés, ${films.contenus?.length ?? 0} films.`);

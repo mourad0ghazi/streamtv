@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600" role="img">
+<title>Affiche de fi-0001</title>
+<rect width="400" height="600" fill="#14181c"/>
+<rect x="0" y="556" width="400" height="4" fill="#e0821f"/>
+<circle cx="200" cy="330" r="90" fill="none" stroke="#2a3238" stroke-width="2"/>
+<circle cx="200" cy="342" r="152" fill="none" stroke="#2a3238" stroke-width="2"/>
+<circle cx="200" cy="354" r="214" fill="none" stroke="#e0821f" stroke-width="6"/>
+<circle cx="200" cy="366" r="276" fill="none" stroke="#2a3238" stroke-width="2"/>
+<circle cx="200" cy="378" r="338" fill="none" stroke="#2a3238" stroke-width="2"/>
+<text x="40" y="60" fill="#8fa0ac" font-family="ui-monospace, monospace" font-size="15" letter-spacing="3">STREAMTV</text>
+</svg>

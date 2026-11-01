@@ -1,0 +1,178 @@
+/**
+ * Appels au serveur. Chaque appel a un plafond d'attente et renvoie un message
+ * français en cas d'échec : l'interface n'a jamais à deviner ce qui s'est passé.
+ *
+ * En démonstration statique (window.STREAMTV_STATIQUE), les mêmes routes sont
+ * calculées sur place par le module partagé, à partir d'un instantané des
+ * données. Un seul calcul de catalogue, deux façons de le servir.
+ */
+
+import * as catalogue from "./partage/catalogue.js";
+import { avecBase } from "./partage/base.js";
+
+const DELAI_MS = 12000;
+
+export class ErreurApi extends Error {
+  constructor(message, code) {
+    super(message);
+    this.name = "ErreurApi";
+    this.code = code;
+  }
+}
+
+let statique = null;
+
+async function chargerStatique() {
+  if (statique) return statique;
+  const controleur = new AbortController();
+  const minuteur = setTimeout(() => controleur.abort(), DELAI_MS);
+  try {
+    const reponse = await fetch(avecBase("/statique/donnees.json"), { signal: controleur.signal });
+    if (!reponse.ok) throw new Error(String(reponse.status));
+    statique = await reponse.json();
+    return statique;
+  } catch {
+    throw new ErreurApi("Les données de la démonstration n'ont pas pu être chargées. Rechargez la page.", 0);
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+function licenceDes(item, donnees) {
+  if (item.licence) return item.licence;
+  const ids = item.sources ?? (item.source ? [item.source] : []);
+  for (const id of ids) {
+    const source = donnees.sources.find((s) => s.id === id);
+    if (source?.licence) return source.licence;
+  }
+  return "Licence non renseignée";
+}
+
+/** Reproduit les réponses de l'API à partir de l'instantané statique. */
+function repondreStatique(cheminComplet, donnees) {
+  const url = new URL(cheminComplet, window.location.origin);
+  const chemin = url.pathname;
+  const q = Object.fromEntries(url.searchParams.entries());
+  const plafond = donnees.plafondCartes ?? 24;
+
+  if (chemin === "/api/etat") {
+    return {
+      version: "3.18.0",
+      date: donnees.date,
+      plafondCartes: plafond,
+      attenteLecteur: donnees.attenteLecteur ?? 10,
+      bandeauDemo: true,
+      compte: { chaines: donnees.chaines.length, anime: donnees.anime.length, films: donnees.films.length }
+    };
+  }
+  if (chemin === "/api/chaines") {
+    return catalogue.paginer(catalogue.filtrerChaines(donnees.chaines, q), q.page, q.taille, plafond);
+  }
+  if (chemin === "/api/chaines/zapping") {
+    return catalogue.listeZapping(donnees.chaines, q, 300);
+  }
+  if (chemin === "/api/chaines/categories") {
+    return {
+      categories: catalogue.categoriesDe(donnees.chaines),
+      pays: catalogue.paysDe(donnees.chaines),
+      regions: catalogue.regionsDe(donnees.chaines)
+    };
+  }
+  if (chemin.startsWith("/api/chaines/")) {
+    const chaine = donnees.chaines.find((c) => c.id === chemin.slice("/api/chaines/".length));
+    if (!chaine) throw new ErreurApi("Chaîne introuvable.", 404);
+    const source = donnees.sources.find((s) => s.id === chaine.source);
+    return { ...chaine, licence: licenceDes(chaine, donnees), nomSource: source?.nom ?? null };
+  }
+  if (chemin === "/api/anime") {
+    const retenus = catalogue.filtrerAnime(donnees.anime, q);
+    return {
+      total: retenus.length,
+      contenus: retenus,
+      facettes: catalogue.facettesAnime(donnees.anime),
+      rangees: catalogue.rangeesAnime(retenus, plafond)
+    };
+  }
+  if (chemin.startsWith("/api/anime/")) {
+    const serie = donnees.anime.find((a) => a.id === chemin.slice("/api/anime/".length));
+    if (!serie) throw new ErreurApi("Animé introuvable.", 404);
+    return {
+      ...serie,
+      licence: licenceDes(serie, donnees),
+      sourcesDetail: (serie.sources ?? []).map((id) => {
+        const source = donnees.sources.find((s) => s.id === id);
+        return { id, nom: source?.nom ?? id, licence: source?.licence ?? "Licence non renseignée" };
+      })
+    };
+  }
+  if (chemin === "/api/films") {
+    const retenus = catalogue.filtrerFilms(donnees.films, q);
+    return {
+      total: retenus.length,
+      contenus: retenus,
+      facettes: catalogue.facettesFilms(donnees.films),
+      ...catalogue.rangeesFilms(retenus, plafond, 4)
+    };
+  }
+  if (chemin.startsWith("/api/films/")) {
+    const film = donnees.films.find((f) => f.id === chemin.slice("/api/films/".length));
+    if (!film) throw new ErreurApi("Film introuvable.", 404);
+    return {
+      ...film,
+      licence: licenceDes(film, donnees),
+      sourcesDetail: (film.sources ?? []).map((id) => {
+        const source = donnees.sources.find((s) => s.id === id);
+        return { id, nom: source?.nom ?? id, licence: source?.licence ?? "Licence non renseignée" };
+      })
+    };
+  }
+  if (chemin === "/api/recherche") {
+    return catalogue.rechercher({ chaines: donnees.chaines, anime: donnees.anime, films: donnees.films }, q.q ?? "", plafond);
+  }
+  if (chemin === "/api/sources") {
+    return { sources: donnees.sources.map((s) => ({ id: s.id, nom: s.nom, licence: s.licence, contenu: s.contenu })) };
+  }
+  if (chemin === "/api/guide") {
+    return { disponible: false, heure: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), raison: "La démonstration statique ne diffuse pas de grille de programmes." };
+  }
+  throw new ErreurApi("La démonstration statique ne propose pas cette action.", 404);
+}
+
+async function demander(chemin, options = {}) {
+  if (typeof window !== "undefined" && window.STREAMTV_STATIQUE) {
+    if (options.methode && options.methode !== "GET") {
+      throw new ErreurApi("La démonstration statique est en lecture seule : cette action n'y est pas disponible.", 403);
+    }
+    return repondreStatique(chemin, await chargerStatique());
+  }
+
+  const controleur = new AbortController();
+  const minuteur = setTimeout(() => controleur.abort(), options.delai ?? DELAI_MS);
+  try {
+    const reponse = await fetch(chemin, {
+      method: options.methode ?? "GET",
+      headers: options.corps ? { "content-type": "application/json" } : undefined,
+      body: options.corps ? JSON.stringify(options.corps) : undefined,
+      credentials: "same-origin",
+      signal: controleur.signal
+    });
+    const type = reponse.headers.get("content-type") ?? "";
+    const charge = type.includes("application/json") ? await reponse.json() : await reponse.text();
+    if (!reponse.ok) {
+      const message = typeof charge === "object" && charge?.erreur ? charge.erreur : `Le serveur a répondu ${reponse.status}.`;
+      throw new ErreurApi(message, reponse.status);
+    }
+    return charge;
+  } catch (erreur) {
+    if (erreur.name === "AbortError") {
+      throw new ErreurApi("Le serveur n'a pas répondu dans le délai prévu. Vérifiez votre connexion, puis réessayez.", 0);
+    }
+    if (erreur instanceof ErreurApi) throw erreur;
+    throw new ErreurApi("Le serveur est injoignable. Vérifiez qu'il tourne, puis réessayez.", 0);
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+export const obtenir = (chemin, options) => demander(chemin, options);
+export const envoyer = (chemin, corps, options) => demander(chemin, { ...options, methode: "POST", corps });

@@ -8,11 +8,14 @@ couleur. Node.js natif, zéro dépendance d'exécution, aucun CDN.
 
 ```bash
 npm start                 # http://127.0.0.1:3000
-npm test                  # 414 tests, lanceur intégré de Node
+npm test                  # 435 tests, lanceur intégré de Node
 npm run versionner        # remet la version dans les adresses des modules
 npm run versionner:check  # échoue si une adresse ou le service worker a dérivé
 npm run controle:lignes   # échoue si un fichier de code dépasse 900 lignes
 node scripts/verify.js --base http://127.0.0.1:3000
+
+npm run publier           # publie la démonstration dans docs/, pour GitHub Pages
+node scripts/verifier-publication.mjs  # contrôle l'adresse publiée
 ```
 
 Au premier démarrage, le serveur crée `data/secret.json` avec le mot de passe par
@@ -140,38 +143,45 @@ pays est visible dans la console, le détail complet est dans le fichier.
 ## Publier la démonstration statique
 
 ```bash
-npm run statique                 # construit _site/ à la racine du domaine
-npm run statique:pages           # construit _site/ sous /streamtv/
-npm run statique:servir          # puis http://127.0.0.1:3001
+npm run statique        # construit _site/, base vide, pour voir en local
+npm run statique:servir # puis http://127.0.0.1:3001
+npm run publier         # construit docs/, base /streamtv, prêt pour GitHub Pages
+node scripts/verifier-publication.mjs   # contrôle l'adresse publiée
 ```
 
-`_site/` contient une version en lecture seule : mêmes données, même interface,
-sans console ni import, avec un bandeau de démonstration sur chaque page.
+`_site/` et `docs/` contiennent la même chose : une version en lecture seule,
+mêmes données, même interface, sans console ni import, avec un bandeau de
+démonstration. Le premier sert aux essais ; le second est ce que GitHub Pages
+sert tel quel.
 
-**Publiée depuis GitHub.** `.github/workflows/pages.yml` construit et publie le
-site à chaque poussée : version des modules, longueur des fichiers et tests
-passent d'abord, la construction suit, le déploiement ferme la marche. Le seul
-réglage à faire une fois est dans le dépôt : **Settings → Pages → Source :
-GitHub Actions**. Rien de construit n'est versionné.
+**GitHub Pages, une fois pour toutes.** Dans le dépôt, **Settings → Pages**,
+puis **Source : Deploy from a branch**, **Branch :
+`arena/4716de68-streamtv`**, **dossier `/docs`**, enfin **Save**. Le site
+apparaît à `https://mourad0ghazi.github.io/streamtv/`. Ensuite, chaque
+`npm run publier` suivi d'un `git push` met le site à jour : il n'y a ni serveur
+à maintenir, ni jeton à fournir, ni dossier compilé à téléverser à la main.
 
 L'adresse dépend du type de dépôt :
 
 | Dépôt | Adresse | Base |
 | ----- | ------- | ---- |
-| de projet, `monDépôt` | `https://<compte>.github.io/monDépôt/` | `/monDépôt` |
+| de projet, `streamtv` | `https://<compte>.github.io/streamtv/` | `/streamtv` |
 | de compte, `<compte>.github.io` | `https://<compte>.github.io/` | vide |
 
-C'est ce que calcule le workflow. Un dépôt de projet vit sous un sous-chemin :
-toutes les adresses internes passent alors par `public/js/partage/base.js`, qui
-reçoit la base dans la page publiée (`window.STREAMTV_BASE`), préfixe les liens
-créés par `h()`, préfixe les feuilles et les modules, et retire la base avant que
-le routeur ne compare le chemin. Le service worker déduit la sienne de sa propre
-adresse et précharge la liste sous cette base. Sans cela, le même code
-fonctionnerait à la racine et donnerait des pages blanches sous `/streamtv/`.
+C'est cette base que `npm run publier` inscrit. Un dépôt de projet vit sous un
+sous-chemin : toutes les adresses internes passent par
+`public/js/partage/base.js`, qui reçoit la base dans la page publiée
+(`window.STREAMTV_BASE`), préfixe les liens créés par `h()`, préfixe les
+feuilles et les modules, et retire la base avant que le routeur ne compare le
+chemin. Le service worker déduit la sienne de sa propre adresse et précharge la
+liste dessous. Sans cela, le même code fonctionnerait à la racine et donnerait
+des pages blanches sous `/streamtv/`.
 
-Chaque route a aussi son dossier (`_site/chaines/index.html`, etc.) pour qu'un
+Chaque route a aussi son dossier (`docs/chaines/index.html`, etc.) pour qu'un
 accès direct réponde 200 ; une fiche de chaîne tombe sur `404.html`, qui est la
-même coquille, et s'ouvre quand même.
+même coquille, et s'ouvre quand même. `tests/publication.test.js` compare
+`docs/` à `public/` fichier par fichier : un module oublié à la publication
+fait échouer `npm test`.
 
 ## Organisation
 
@@ -183,7 +193,7 @@ public/js/partage/catalogue.js
 data/         catalogues, sources, guide éventuel
 docs/         ADMINISTRATION.md
 scripts/      import, version, contrôle de longueur, vérification, statique
-tests/        431 tests, lanceur intégré de Node
+tests/        435 tests, lanceur intégré de Node
 ```
 
 Le fichier `public/js/partage/catalogue.js` contient la seule pagination, le seul

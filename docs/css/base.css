@@ -1,0 +1,416 @@
+/*
+ * Base : remise à zéro, typographie, coquille, composants communs.
+ * Une seule famille de police, une échelle de tailles réelle, un seul rayon.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: var(--police);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 40px;
+  max-width: 22ch;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 20px;
+}
+
+h4 {
+  font-size: 16px;
+}
+
+p {
+  margin: 0;
+  max-width: var(--largeur-texte);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-clair);
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+code {
+  font-family: var(--police-mono);
+  font-size: 14px;
+  color: var(--texte);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--rayon-petit);
+}
+
+/* ---------------------------------------------------------------- */
+/* Coquille                                                          */
+/* ---------------------------------------------------------------- */
+
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--fond);
+  border-bottom: 1px solid var(--bordure);
+}
+
+.entete__interieur {
+  max-width: var(--largeur-contenu);
+  margin: 0 auto;
+  padding: var(--e3) var(--e5);
+  display: flex;
+  align-items: center;
+  gap: var(--e5);
+}
+
+.marque {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.marque span {
+  color: var(--accent);
+}
+
+.nav {
+  display: flex;
+  gap: var(--e1);
+  flex: 1;
+}
+
+.nav a {
+  padding: var(--e2) var(--e3);
+  border-radius: var(--rayon);
+  font-size: 15px;
+  color: var(--texte-secondaire);
+  transition: background-color var(--duree-survol) ease-out, color var(--duree-survol) ease-out;
+}
+
+.nav a:hover {
+  background: var(--surface-haute);
+  color: var(--texte);
+}
+
+.nav a[aria-current="page"] {
+  color: var(--texte);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+}
+
+.entete__outils {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.recherche-entete {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: 0 var(--e3);
+  height: 40px;
+  transition: border-color var(--duree-survol) ease-out;
+}
+
+.recherche-entete:focus-within {
+  border-color: var(--bordure-forte);
+}
+
+.recherche-entete input {
+  background: none;
+  border: 0;
+  width: 180px;
+  height: 38px;
+  outline: none;
+  font-size: 15px;
+}
+
+.recherche-entete input::placeholder {
+  color: var(--texte-faible);
+}
+
+.page {
+  max-width: var(--largeur-contenu);
+  margin: 0 auto;
+  padding: var(--e7) var(--e5) var(--e9);
+}
+
+.page__entete {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--e5);
+  margin-bottom: var(--e5);
+}
+
+.page__chapeau {
+  color: var(--texte-secondaire);
+  font-size: 15px;
+  margin-top: var(--e2);
+}
+
+.bandeau-demo {
+  background: var(--surface-haute);
+  border-bottom: 1px solid var(--bordure);
+  color: var(--texte-secondaire);
+  font-size: 14px;
+  padding: var(--e2) var(--e5);
+  text-align: center;
+}
+
+.bandeau-demo strong {
+  color: var(--texte);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- */
+/* Composants                                                        */
+/* ---------------------------------------------------------------- */
+
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  min-height: 40px;
+  padding: var(--e2) var(--e4);
+  border-radius: var(--rayon);
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--texte);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--duree-survol) ease-out, border-color var(--duree-survol) ease-out;
+}
+
+.bouton:hover {
+  background: var(--surface-haute);
+  border-color: var(--bordure-forte);
+}
+
+.bouton--principal {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-texte);
+  font-weight: 600;
+}
+
+.bouton--principal:hover {
+  background: var(--accent-clair);
+  border-color: var(--accent-clair);
+}
+
+.bouton--discret {
+  background: none;
+  border-color: transparent;
+  color: var(--texte-secondaire);
+  padding: var(--e2);
+}
+
+.bouton--discret:hover {
+  background: var(--surface);
+  color: var(--texte);
+}
+
+.bouton[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+
+.champ label {
+  font-size: 14px;
+  color: var(--texte-secondaire);
+}
+
+.champ input,
+.champ select {
+  height: 40px;
+  padding: 0 var(--e3);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  font-size: 15px;
+  transition: border-color var(--duree-survol) ease-out;
+}
+
+.champ input:hover,
+.champ select:hover {
+  border-color: var(--bordure-forte);
+}
+
+.champ__aide {
+  font-size: 13px;
+  color: var(--texte-faible);
+}
+
+.filtres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e3);
+  padding: var(--e4);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  margin-bottom: var(--e5);
+}
+
+.filtres .champ {
+  min-width: 160px;
+}
+
+/* États : vide, erreur, attente. Toujours en français, toujours une issue. */
+
+.etat {
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: var(--e5);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  max-width: 640px;
+}
+
+.etat h2 {
+  font-size: 20px;
+}
+
+.etat p {
+  color: var(--texte-secondaire);
+  font-size: 15px;
+}
+
+.etat--erreur {
+  border-color: var(--danger);
+}
+
+.attente {
+  padding: var(--e6) 0;
+  color: var(--texte-secondaire);
+  font-size: 15px;
+}
+
+.lien {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.visuellement-cache {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- */
+/* Téléphone                                                         */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  h1 {
+    font-size: 30px;
+  }
+
+  .entete__interieur {
+    flex-wrap: wrap;
+    padding: var(--e3) var(--e4);
+    gap: var(--e3);
+  }
+
+  .nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .recherche-entete {
+    flex: 1;
+  }
+
+  .recherche-entete input {
+    width: 100%;
+  }
+
+  .page {
+    padding: var(--e5) var(--e4) var(--e8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
