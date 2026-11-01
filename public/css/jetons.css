@@ -1,0 +1,49 @@
+/*
+ * Jetons de design. Toute couleur, tout espacement et tout rayon passent par
+ * ces variables : aucun fichier de style ne pose de valeur en dur.
+ *
+ * Un seul accent, une seule famille de gris, à température froide.
+ */
+
+:root {
+  --fond: #0d1013;
+  --surface: #14181c;
+  --surface-haute: #191f24;
+  --bordure: #262e35;
+  --bordure-forte: #35404a;
+
+  --texte: #e9eef2;
+  --texte-secondaire: #9aa8b2;
+  --texte-faible: #74838e;
+
+  --accent: #e0821f;
+  --accent-clair: #f09a3f;
+  --accent-texte: #17110a;
+
+  --danger: #d4553f;
+  --succes: #4f9d69;
+
+  --rayon: 8px;
+  --rayon-petit: 4px;
+
+  --e1: 4px;
+  --e2: 8px;
+  --e3: 12px;
+  --e4: 16px;
+  --e5: 24px;
+  --e6: 32px;
+  --e7: 48px;
+  --e8: 64px;
+  --e9: 96px;
+
+  --largeur-contenu: 1200px;
+  --largeur-texte: 68ch;
+
+  --police: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --police-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  --duree-survol: 140ms;
+  --duree-entree: 220ms;
+
+  --ombre-flottant: 0 1px 2px rgba(0, 0, 0, 0.6);
+}

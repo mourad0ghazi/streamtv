@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "date": "2026-11-01T10:00:00Z",
+  "contenus": [
+    {
+      "id": "an-0001",
+      "titre": "Big Buck Bunny",
+      "titre_original": "Big Buck Bunny",
+      "annee": 2008,
+      "format": "serie",
+      "genres": ["Comédie", "Aventure"],
+      "studio": "Blender Institute",
+      "statut": "termine",
+      "langue": "VO",
+      "affiche": "/affiches/an-0001.svg",
+      "synopsis": "Un lapin débonnaire se lasse des trois rongeurs qui le tourmentent et leur prépare une réponse à sa mesure.",
+      "sources": ["blender-ouverte"],
+      "licence": "CC BY 3.0",
+      "episodes": [
+        {
+          "numero": 1,
+          "titre": "Le film",
+          "duree": 596,
+          "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+        },
+        {
+          "numero": 2,
+          "titre": "La bande-annonce",
+          "duree": 33,
+          "url": "https://media.w3.org/2010/05/bunny/trailer.mp4"
+        }
+      ]
+    },
+    {
+      "id": "an-0002",
+      "titre": "Sintel",
+      "titre_original": "Sintel",
+      "annee": 2010,
+      "format": "serie",
+      "genres": ["Fantastique", "Aventure"],
+      "studio": "Blender Institute",
+      "statut": "termine",
+      "langue": "VOSTFR",
+      "affiche": "/affiches/an-0002.svg",
+      "synopsis": "Une jeune guerrière solitaire part à la recherche du dragon qu'elle avait soigné et protégé dans son enfance.",
+      "sources": ["blender-ouverte"],
+      "licence": "CC BY 3.0",
+      "episodes": [
+        {
+          "numero": 1,
+          "titre": "Le film",
+          "duree": 888,
+          "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
+        },
+        {
+          "numero": 2,
+          "titre": "La bande-annonce",
+          "duree": 52,
+          "url": "https://media.w3.org/2010/05/sintel/trailer.mp4"
+        }
+      ]
+    },
+    {
+      "id": "an-0003",
+      "titre": "Elephants Dream",
+      "titre_original": "Elephants Dream",
+      "annee": 2006,
+      "format": "film",
+      "genres": ["Science-fiction", "Aventure"],
+      "studio": "Blender Institute",
+      "statut": "termine",
+      "langue": "VO",
+      "affiche": "/affiches/an-0003.svg",
+      "synopsis": "Deux hommes parcourent une machine immense et changeante, dont chacun comprend les rouages autrement.",
+      "sources": ["blender-ouverte"],
+      "licence": "CC BY 2.5",
+      "episodes": [
+        {
+          "numero": 1,
+          "titre": "Le film",
+          "duree": 653,
+          "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
+        }
+      ]
+    }
+  ]
+}

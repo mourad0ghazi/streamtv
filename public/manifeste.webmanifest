@@ -1,0 +1,20 @@
+{
+  "name": "StreamTV",
+  "short_name": "StreamTV",
+  "description": "Catalogue vidéo gratuit et licite : chaînes en direct, animés et films.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d1013",
+  "theme_color": "#0d1013",
+  "icons": [
+    {
+      "src": "/icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

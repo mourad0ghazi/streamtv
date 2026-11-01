@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "note": "Sources de vidéo à la demande. Ce fichier est saisi à la main ; l'import des chaînes le relit et le recopie dans data/sources.json.",
+  "sources": [
+    {
+      "id": "blender-ouverte",
+      "nom": "Films ouverts du Blender Institute",
+      "type": "vod",
+      "contenu": "film",
+      "url": "https://download.blender.org/",
+      "licence": "Creative Commons Attribution, version indiquée sur chaque fiche, vérifiée le 2026-11-01",
+      "pays": "NL",
+      "langue": "en",
+      "actif": true,
+      "priorite": 1
+    }
+  ]
+}

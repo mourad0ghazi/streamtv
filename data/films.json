@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "date": "2026-11-01T10:00:00Z",
+  "contenus": [
+    {
+      "id": "fi-0001",
+      "titre": "Sintel",
+      "annee": 2010,
+      "duree": 888,
+      "genres": ["Fantastique", "Aventure"],
+      "realisateur": "Colin Levy",
+      "synopsis": "Une jeune guerrière solitaire part à la recherche du dragon qu'elle avait soigné et protégé dans son enfance. Le chemin la mène plus loin qu'elle ne l'avait prévu.",
+      "affiche": "/affiches/fi-0001.svg",
+      "sources": ["blender-ouverte"],
+      "licence": "CC BY 3.0",
+      "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+      "ajoute_le": "2026-10-28"
+    },
+    {
+      "id": "fi-0002",
+      "titre": "Big Buck Bunny",
+      "annee": 2008,
+      "duree": 596,
+      "genres": ["Animation", "Comédie"],
+      "realisateur": "Sacha Goedegebure",
+      "synopsis": "Un lapin débonnaire se lasse des trois rongeurs qui le tourmentent et leur prépare une réponse à sa mesure, dans une forêt dessinée en trois dimensions.",
+      "affiche": "/affiches/fi-0002.svg",
+      "sources": ["blender-ouverte"],
+      "licence": "CC BY 3.0",
+      "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      "ajoute_le": "2026-10-28"
+    },
+    {
+      "id": "fi-0003",
+      "titre": "Elephants Dream",
+      "annee": 2006,
+      "duree": 653,
+      "genres": ["Animation", "Science-fiction"],
+      "realisateur": "Bassam Kurdali",
+      "synopsis": "Deux hommes parcourent une machine immense et changeante. L'un cherche à comprendre, l'autre à sortir, et la machine ne fait de cadeau à aucun des deux.",
+      "affiche": "/affiches/fi-0003.svg",
+      "sources": ["blender-ouverte"],
+      "licence": "CC BY 2.5",
+      "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+      "ajoute_le": "2026-10-30"
+    },
+    {
+      "id": "fi-0004",
+      "titre": "Tears of Steel",
+      "annee": 2012,
+      "duree": 734,
+      "genres": ["Science-fiction", "Action"],
+      "realisateur": "Ian Hubert",
+      "synopsis": "Dans un Amsterdam reconstruit, un groupe de scientifiques tente de rejouer une scène du passé pour réparer le présent.",
+      "affiche": "/affiches/fi-0004.svg",
+      "sources": ["blender-ouverte"],
+      "licence": "CC BY 3.0",
+      "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+      "ajoute_le": "2026-11-01"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600" role="img">
+<title>Affiche de an-0001</title>
+<rect width="400" height="600" fill="#14181c"/>
+<rect x="0" y="556" width="400" height="4" fill="#e0821f"/>
+<rect x="246" y="103" width="49" height="49" fill="none" stroke="#e0821f" stroke-width="5" transform="rotate(18 270.5 127.5)"/>
+<rect x="159" y="108" width="52" height="52" fill="none" stroke="#2a3238" stroke-width="2" transform="rotate(10 185 134)"/>
+<rect x="286" y="325" width="120" height="120" fill="none" stroke="#2a3238" stroke-width="2" transform="rotate(17 346 385)"/>
+<rect x="249" y="452" width="150" height="150" fill="none" stroke="#e0821f" stroke-width="5" transform="rotate(3 324 527)"/>
+<rect x="248" y="113" width="62" height="62" fill="none" stroke="#2a3238" stroke-width="2" transform="rotate(1 279 144)"/>
+<rect x="283" y="383" width="114" height="114" fill="none" stroke="#2a3238" stroke-width="2" transform="rotate(11 340 440)"/>
+<rect x="203" y="244" width="73" height="73" fill="none" stroke="#e0821f" stroke-width="5" transform="rotate(-15 239.5 280.5)"/>
+<text x="40" y="60" fill="#8fa0ac" font-family="ui-monospace, monospace" font-size="15" letter-spacing="3">STREAMTV</text>
+</svg>

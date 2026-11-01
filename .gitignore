@@ -1,0 +1,17 @@
+# Sortie de la construction statique
+_site/
+
+# Relevé amont téléchargé à part, jamais versionné
+amont/
+
+# État d'exécution : secret, journal, réglages et mesures locales
+data/secret.json
+data/audit.json
+data/reglages.json
+data/sondes.json
+data/signalements.json
+
+# Divers
+node_modules/
+.DS_Store
+*.log

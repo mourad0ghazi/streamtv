@@ -1,0 +1,21 @@
+{
+  "name": "streamtv",
+  "version": "3.18.0",
+  "private": true,
+  "type": "module",
+  "description": "Catalogue vidéo web à trois entrées : chaînes en direct, animés, films.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/serveur.js",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "versionner": "node scripts/versionner.js --ecrire",
+    "versionner:check": "node scripts/versionner.js --verifier",
+    "controle:lignes": "node scripts/controle-lignes.js",
+    "importer": "node scripts/importer.mjs",
+    "statique": "node scripts/construire-statique.mjs",
+    "verify": "node scripts/verify.js"
+  }
+}
