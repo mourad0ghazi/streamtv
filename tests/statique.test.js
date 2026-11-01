@@ -97,3 +97,29 @@ test("la démonstration se publie sous /streamtv/ pour GitHub Pages", async () =
     await rm(dossier, { recursive: true, force: true });
   }
 });
+
+test("le serveur d'aperçu renvoie la racine vers la base, sans boucle", async () => {
+  const { servir } = await import("../scripts/construire-statique.mjs");
+  const serveur = servir(0, join(RACINE, "docs"), "/streamtv");
+  await new Promise((resoudre) => serveur.once("listening", resoudre));
+  const port = serveur.address().port;
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    const racine = await fetch(`${base}/`, { redirect: "manual" });
+    assert.equal(racine.status, 302);
+    assert.equal(racine.headers.get("location"), "/streamtv/");
+
+    const sansBarre = await fetch(`${base}/streamtv`, { redirect: "manual" });
+    assert.equal(sansBarre.status, 302);
+
+    const accueil = await fetch(`${base}/streamtv/`, { redirect: "manual" });
+    assert.equal(accueil.status, 200, "la base avec sa barre ne doit pas rediriger");
+    const html = await accueil.text();
+    assert.match(html, /STREAMTV_BASE = "\/streamtv"/);
+
+    const page = await fetch(`${base}/streamtv/chaines/`);
+    assert.equal(page.status, 200);
+  } finally {
+    await new Promise((resoudre) => serveur.close(resoudre));
+  }
+});

@@ -159,10 +159,20 @@ async function construire() {
 }
 
 /** Petit serveur de vérification, pour contrôler _site/ avant publication. */
-function servir(port = 3001, sortie = SORTIE, base = "") {
+/**
+ * Serveur d'aperçu. Il imite GitHub Pages : le site vit sous `base`, et la
+ * racine du domaine y renvoie, plutôt que d'afficher une page dont les adresses
+ * désignent un autre chemin que celui de la barre du navigateur.
+ */
+export function servir(port = 3001, sortie = SORTIE, base = "") {
   const serveur = createServer(async (requete, reponse) => {
     const brut = decodeURIComponent(new URL(requete.url, "http://localhost").pathname);
-    const chemin = base && (brut === base || brut.startsWith(`${base}/`)) ? brut.slice(base.length) || "/" : brut;
+    // Racine du domaine et base sans barre finale : une seule redirection.
+    if (base && (brut === "/" || brut === base)) {
+      reponse.writeHead(302, { location: `${base}/` });
+      return reponse.end();
+    }
+    const chemin = base && brut.startsWith(`${base}/`) ? brut.slice(base.length) || "/" : brut;
     const candidats = [join(sortie, chemin), join(sortie, chemin, "index.html"), join(sortie, "index.html")];
     for (const candidat of candidats) {
       try {

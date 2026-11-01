@@ -161,6 +161,11 @@ apparaît à `https://mourad0ghazi.github.io/streamtv/`. Ensuite, chaque
 `npm run publier` suivi d'un `git push` met le site à jour : il n'y a ni serveur
 à maintenir, ni jeton à fournir, ni dossier compilé à téléverser à la main.
 
+Tant que ces quatre clics ne sont pas faits, l'adresse répond « There isn't a
+GitHub Pages site here » : ce n'est pas le site qui est cassé, c'est Pages qui
+est éteint. Le pas à pas, la variante GitHub Actions et les contrôles sont dans
+[PUBLIER.md](PUBLIER.md).
+
 L'adresse dépend du type de dépôt :
 
 | Dépôt | Adresse | Base |

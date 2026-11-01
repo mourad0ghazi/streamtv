@@ -335,6 +335,13 @@ douze dernières vivent dans le stockage local du navigateur, sous la clé
 panne. Aucune de ces valeurs ne remonte au serveur, et le journal d'audit n'en
 garde aucune trace.
 
+**L'adresse publiée répond 404 : Pages est éteint, pas le site.** Sur un dépôt
+de projet, GitHub ne sert rien tant que **Settings → Pages** n'a pas reçu de
+source. Choisissez `Deploy from a branch`, la branche
+`arena/4716de68-streamtv`, le dossier `/docs`, puis enregistrez. La variante
+GitHub Actions demande un fichier de workflow et les droits correspondants ;
+`PUBLIER.md` donne les deux chemins.
+
 **La démonstration publiée n'a pas de console.** GitHub Pages sert un dossier de
 fichiers : aucun serveur, donc aucune authentification, aucun import, aucun
 réglage. Ne cherchez pas `/console-f3a91c` sur l'adresse publiée, elle n'y
