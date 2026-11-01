@@ -30,6 +30,7 @@ import * as incidents from "./incidents.js";
 import { traiterConsole } from "./routes-console.js";
 import * as filmsAjoutes from "./films-ajoutes.js";
 import * as comptes from "./comptes.js";
+import * as proxy from "./proxy-flux.js";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = join(RACINE, "public");
@@ -354,6 +355,13 @@ export async function traiter(requete, reponse, options = {}) {
   const surface = options.surface === "administration" ? "administration" : "site";
   const accesLibre = () => surface === "administration" && reglages.valeur("console_sans_mot_de_passe") === true;
 
+  // Relais de flux : le navigateur demande au site, le site demande à la
+  // chaîne. C'est ce qui règle le CORS, le contenu mixte et le User-Agent.
+  if (chemin === proxy.CHEMIN) {
+    await lecture.rafraichir();
+    return proxy.traiter({ requete, reponse, recherche: url.searchParams });
+  }
+
   // Feuille d'apparence du site : un vrai fichier CSS, servi par le serveur,
   // pour que la politique de sécurité n'ait pas à autoriser de style en ligne.
   if (chemin === "/apparence.css" && methode === "GET") {
@@ -385,7 +393,9 @@ export async function traiter(requete, reponse, options = {}) {
           films: contenus("films").length
         },
         bandeauDemo: reglages.valeur("bandeau_demo"),
-        attenteLecteur: reglages.valeur("attente_lecteur_secondes")
+        attenteLecteur: reglages.valeur("attente_lecteur_secondes"),
+        // Le lecteur n'aiguille par le relais que si l'administrateur l'a ouvert.
+        proxyActif: (await lecture.statut()).proxy_actif === true
       }), true;
     }
 

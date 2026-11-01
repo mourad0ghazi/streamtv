@@ -1,6 +1,6 @@
 {
   "name": "streamtv",
-  "version": "3.23.0",
+  "version": "3.24.0",
   "private": true,
   "type": "module",
   "description": "Catalogue vidéo web à trois entrées : chaînes en direct, animés, films.",

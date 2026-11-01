@@ -87,6 +87,17 @@ export async function panneauLecture() {
   const muet = h("input", { type: "checkbox", id: "muet", checked: statut.demarrage_muet === true });
   const ouvert = h("input", { type: "checkbox", id: "fournisseur-actif", checked: statut.fournisseur_actif === true });
 
+  // Relais des flux : le serveur va chercher la chaîne à la place du navigateur.
+  const relais = h("input", { type: "checkbox", id: "proxy-actif", checked: statut.proxy_actif === true });
+  const agent = h("input", { type: "text", id: "proxy-agent", value: statut.proxy_agent ?? "", maxlength: "120" });
+  const referer = h(
+    "select",
+    { id: "proxy-referer" },
+    ...["origine", "aucun"].map((v) =>
+      h("option", { value: v, selected: v === statut.proxy_referer ? true : null }, v === "origine" ? "le domaine du flux" : "aucun Referer")
+    )
+  );
+
   const message = h("p", { class: "aide-message", role: "status" });
   const bouton = h("button", { class: "bouton bouton--principal", type: "submit" }, "Enregistrer la configuration");
 
@@ -103,6 +114,14 @@ export async function panneauLecture() {
     champ("Adresse du fournisseur", base, "HTTPS seulement. HTTP n'est accepté que pour un miroir local d'essai."),
     champ("Chemin du cadre", modele, "Doit contenir {tmdbId}. {cle} est remplacé par la clé, côté serveur."),
     champ("Clé du fournisseur", cle, "Jamais réaffichée : laissez vide pour la conserver, saisissez une valeur pour la remplacer."),
+    h(
+      "div",
+      { class: "champ__case" },
+      relais,
+      h("span", {}, "Relayer les chaînes par le serveur (règle le blocage CORS, le contenu mixte et le User-Agent)")
+    ),
+    champ("User-Agent envoyé au diffuseur", agent, "Certains serveurs refusent les navigateurs et acceptent les lecteurs."),
+    champ("Referer envoyé au diffuseur", referer, "Certains serveurs refusent une requête sans Referer."),
     champ("Qualité maximale des fichiers du catalogue", qualite, "Le fournisseur tiers choisit la sienne."),
     h("div", { class: "champ__case" }, reprise, h("span", {}, "Reprise automatique à la seconde, depuis l'appareil du visiteur")),
     h("div", { class: "champ__case" }, muet, h("span", {}, "Démarrer sans son")),
@@ -121,7 +140,10 @@ export async function panneauLecture() {
       qualite_max: qualite.value,
       reprise_auto: reprise.checked,
       demarrage_muet: muet.checked,
-      fournisseur_actif: ouvert.checked
+      fournisseur_actif: ouvert.checked,
+      proxy_actif: relais.checked,
+      proxy_agent: agent.value,
+      proxy_referer: referer.value
     };
     if (cle.value.trim()) changements.cle = cle.value.trim();
     try {
@@ -129,9 +151,14 @@ export async function panneauLecture() {
       cle.value = "";
       cle.placeholder = reponse.statut.clePresente ? `clé enregistrée : ${reponse.statut.cleExtrait}` : "aucune clé enregistrée";
       notifier("Configuration de lecture enregistrée.");
-      message.textContent = reponse.statut.fournisseur_actif
-        ? `Lecture ouverte par ${reponse.statut.fournisseur_nom}.`
-        : "Configuration enregistrée : la lecture tierce reste fermée.";
+      message.textContent = [
+        reponse.statut.fournisseur_actif
+          ? `Lecture ouverte par ${reponse.statut.fournisseur_nom}.`
+          : "Configuration enregistrée : la lecture tierce reste fermée.",
+        reponse.statut.proxy_actif
+          ? "Relais ouvert : les chaînes passent par ce serveur, la bande passante est la sienne."
+          : "Relais fermé : le navigateur s'adresse directement aux diffuseurs."
+      ].join(" ");
       vider(zoneAvertissements).append(...avertissements(reponse.statut));
     } catch (erreur) {
       const refuses = erreur.refuses;
@@ -161,6 +188,8 @@ export async function panneauLecture() {
         h("li", {}, `Lecture tierce : ${statut.fournisseur_actif ? "ouverte" : "fermée"}`),
         h("li", {}, `Clé : ${statut.clePresente ? `présente (${statut.cleExtrait})` : "absente"}`),
         h("li", {}, `Attestation : ${statut.atteste ? "enregistrée" : "absente"}`),
+        h("li", {}, `Relais des flux : ${statut.proxy_actif ? "ouvert" : "fermé"}`),
+        h("li", {}, `User-Agent du relais : ${statut.proxy_agent}`),
         h("li", {}, `Blocage éventuel : ${statut.blocage ?? "aucun"}`)
       )
     )

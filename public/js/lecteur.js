@@ -14,12 +14,30 @@ import * as zapping from "./zapping.js";
 
 let hlsCharge = null;
 
+/**
+ * Relais des flux, décidé par le serveur et annoncé dans /api/etat.
+ *
+ * Activé, chaque adresse de direct passe par `/flux`, servi par le site : plus
+ * de CORS à négocier avec le diffuseur, plus de contenu mixte, et un User-Agent
+ * choisi. Désactivé, le navigateur s'adresse directement à la chaîne.
+ */
+let relaisActif = false;
+
+export function configurerRelais(valeur) {
+  relaisActif = valeur === true;
+}
+
+function urlRelayee(url) {
+  if (!relaisActif || typeof url !== "string" || !url) return url;
+  return `/flux?url=${encodeURIComponent(url)}`;
+}
+
 function chargerHls() {
   if (window.Hls) return Promise.resolve(window.Hls);
   if (hlsCharge) return hlsCharge;
   hlsCharge = new Promise((resoudre, rejeter) => {
     const script = document.createElement("script");
-    script.src = "/vendor/hls.js?v=3.23.0";
+    script.src = "/vendor/hls.js?v=3.24.0";
     script.onload = () => (window.Hls ? resoudre(window.Hls) : rejeter(new Error("hls.js absent")));
     script.onerror = () => rejeter(new Error("hls.js illisible"));
     document.head.append(script);
@@ -118,6 +136,7 @@ function construirePanneau(liste, obtenirIndex, choisir, fermerPanneau, options 
 export function ouvrir(options) {
   const attente = Math.max(5, Number(options.attenteSecondes) || 10) * 1000;
   const estDirect = options.type === "direct";
+  options.url = urlRelayee(options.url);
   const liste = Array.isArray(options.liste) && options.liste.length ? options.liste : [];
   let index = Number.isInteger(options.index) && options.index >= 0 ? options.index : liste.findIndex((c) => c.id === options.id);
   if (index < 0) index = 0;
@@ -289,7 +308,7 @@ export function ouvrir(options) {
     if (!liste.length) return;
     index = ((nouvelIndex % liste.length) + liste.length) % liste.length;
     const courante = liste[index];
-    options.url = courante.url;
+    options.url = urlRelayee(courante.url);
     options.id = courante.id;
     options.titre = courante.nom;
     options.type = "direct";

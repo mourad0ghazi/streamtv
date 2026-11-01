@@ -1,5 +1,44 @@
 # Journal des versions
 
+## 3.24.0, 1er novembre 2026
+
+### Ce qui change
+
+- **Relais des flux, fermé par défaut.** `server/proxy-flux.js` sert `/flux` :
+  le navigateur demande la chaîne au site, le site la demande au diffuseur. Le
+  blocage CORS, le contenu mixte et l'absence de Referer disparaissent de
+  l'équation ; le User-Agent et le Referer sont choisis par l'administrateur.
+- **Un relais qui transporte, sans charger.** Segments et fichiers sont
+  transmis au fil de l'eau ; seules les playlists sont lues, avec un plafond de
+  2 Mio. Les requêtes `Range` et les réponses `206` passent telles quelles, et
+  les redirections sont suivies jusqu'à cinq sauts.
+- **Playlists HLS réécrites.** Variantes de la playlist maîtresse, segments,
+  clés `EXT-X-KEY`, `EXT-X-MAP` et `EXT-X-PART` repassent tous par `/flux`, avec
+  un jeton signé en HMAC-SHA256 pour chaque sous-adresse. Un seul mécanisme de
+  lecture, y compris pour les sous-playlists.
+- **Pas de proxy ouvert.** Seules les adresses du catalogue sont acceptées, ou
+  un jeton signé par le serveur. Les adresses privées, de bouclage, de lien
+  local et multicast sont refusées, y compris quand un nom public résout vers
+  elles ; chaque saut de redirection est recontrôlé. Plafonds : 48 relais
+  simultanés, 5 redirections, 15 secondes pour les en-têtes.
+- **Trois réglages dans l'onglet Lecture et diffusion** : ouverture du relais,
+  User-Agent, Referer. L'état public `/api/etat` annonce `proxyActif`, et le
+  lecteur n'aiguille par `/flux` que si l'administrateur l'a ouvert.
+- **Ce que le relais ne fait pas, écrit noir sur blanc** dans la documentation :
+  il ne répare ni un flux mort, ni un verrouillage géographique, ni un format
+  non décodable (MPEG-TS brut, DASH), et il ne rend pas licite un flux qui ne
+  l'était pas. Il coûte la bande passante du serveur.
+
+### Les chiffres
+
+- Tests : **607**, tous passants ; 25 tests nouveaux pour le relais (adresses
+  refusées, jetons falsifiés, réécriture de playlists, `Range`, `206`, `HEAD`,
+  redirections, absences, panne d'origine).
+- `node scripts/controle-lignes.js` : 142 fichiers, aucun au-delà de 900 lignes.
+- `node scripts/versionner.js --verifier` : 40 modules, 47 entrées de
+  préchargement, version `3.24.0` partout.
+- `GET /api/etat` annonce `3.24.0`.
+
 ## 3.23.0, 1er novembre 2026
 
 ### Ce qui change

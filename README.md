@@ -62,6 +62,28 @@ des chaînes rouvre sur un bandeau « Reprendre » et une rangée « Récemment
 regardées ». Quand une chaîne ne répond pas, le lecteur propose de réessayer,
 de passer à la suivante, d'ouvrir la liste, ou de revenir au catalogue.
 
+**Pourquoi une chaîne se lit dans VLC et pas ici.** Une chaîne qui fonctionne
+dans VLC peut échouer dans le navigateur pour une raison précise : `hls.js` lit
+la playlist et les segments avec `fetch`, donc sous la règle CORS. VLC l'ignore.
+Sur les 3 483 hôtes distincts du catalogue, la plupart n'envoient pas
+`Access-Control-Allow-Origin` : le flux est bon, le navigateur refuse. S'y
+ajoutent les serveurs qui rejettent un User-Agent de navigateur, les flux morts,
+les verrouillages géographiques et les formats que le navigateur ne décode pas
+(MPEG-TS brut, DASH).
+
+Le réglage `proxy_actif` (console, onglet **Lecture et diffusion**) ouvre un
+relais : le navigateur demande `/flux` au site, le site va chercher la chaîne.
+Plus de CORS, plus de contenu mixte, un User-Agent et un Referer choisis. Les
+requêtes `Range` sont transmises et les playlists HLS sont réécrites pour que
+segments, variantes, clés et init maps repassent par le relais. Rien n'est chargé
+en mémoire pour la vidéo.
+
+Le relais ne répare ni un flux mort, ni un blocage géographique, ni un format
+non décodable, et il ne rend pas licite un flux qui ne l'était pas. Il coûte
+aussi la bande passante du serveur : ouvrez-le pour vérifier, refermez-le si le
+volume n'est pas tenu. Il n'accepte que les adresses du catalogue, ou un jeton
+signé pour les segments, et refuse toute adresse privée ou locale.
+
 **Sur le téléphone.** Le site s'installe comme application : `public/sw.js`
 précharge la coquille et tous les modules, sert le réseau d'abord et retombe sur
 le cache quand la connexion manque. Les appels `/api/` ne sont jamais mis en

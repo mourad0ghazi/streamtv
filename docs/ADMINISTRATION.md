@@ -149,6 +149,66 @@ positif, remplacement des jetons, vérification stricte du domaine obtenu. Une
 adresse qui sortirait du domaine déclaré est refusée. La position de reprise
 part dans le paramètre `progress`, en secondes.
 
+### Relais des flux {#lecture-relais}
+
+La plupart des chaînes du catalogue sont des playlists HLS. Dans un navigateur,
+`hls.js` lit la playlist et chaque segment avec `fetch` : la règle CORS
+s'applique, et le serveur de la chaîne doit répondre
+`Access-Control-Allow-Origin`. Sur les 3 483 hôtes distincts que compte le
+catalogue, la grande majorité n'envoie pas cet en-tête. VLC, lui, ignore CORS :
+c'est pourquoi une chaîne se lit dans VLC et pas sur le site. S'y ajoutent les
+serveurs qui refusent un User-Agent de navigateur ou exigent un Referer.
+
+Le relais change qui fait la requête. Le navigateur demande `/flux` au site, le
+site va chercher la chaîne, et renvoie la réponse : plus de CORS à négocier, pas
+de contenu mixte, un User-Agent et un Referer choisis. Les redirections sont
+suivies, les requêtes `Range` sont transmises, et une playlist HLS est réécrite
+pour que ses variantes, segments, clés et init maps repassent tous par le
+relais. Rien ne passe en mémoire pour la vidéo : les octets sont transmis au fil
+de l'eau.
+
+Type : booléen pour l'ouverture du relais, texte pour le User-Agent, choix pour
+le Referer.
+
+| Réglage | Type | Valeur par défaut |
+| ------- | ---- | ---------------- |
+| Relais des flux | booléen | faux |
+| User-Agent du relais {#lecture-relais-agent} | texte | `VLC/3.0.20 LibVLC/3.0.20` |
+| Referer envoyé au diffuseur {#lecture-relais-referer} | choix | le domaine du flux |
+
+**Ce que le relais répare.** Le blocage CORS, le contenu mixte, l'absence de
+Referer, le refus des User-Agent de navigateur.
+
+**Ce qu'il ne répare pas.** Un flux mort, un verrouillage géographique, un jeton
+signé expiré, un flux chiffré sans clé, ou un format que le navigateur ne sait
+pas décoder (MPEG-TS brut, DASH sans lecteur dédié). Il n'y a aucun transcodage :
+le relais transporte, il ne convertit pas. Il ne rend pas davantage licite un
+flux qui ne l'était pas.
+
+**Le coût.** Toute la bande passante des chaînes passe désormais par ce serveur.
+Un relais ouvert sur un hébergement mutualisé se repère vite : le trafic sortant
+monte d'un coup et l'hébergeur facture ou coupe. Ouvrez-le pour vérifier, puis
+refermez-le si le volume n'est pas tenu.
+
+**La sécurité.** Le relais n'accepte pas d'adresse libre : soit l'adresse figure
+dans le catalogue chargé (`/flux?url=…`), soit elle porte un jeton signé par le
+serveur (`/flux?t=…`), ce qui couvre les segments et sous-playlists. Les adresses
+privées, de bouclage, de lien local et multicast sont refusées, y compris quand
+un nom public résout vers elles ; les redirections sont recontrôlées à chaque
+saut. Un relais ouvert à toutes les adresses ferait du serveur un tremplin vers
+son propre réseau : c'est le défaut classique, il est ici fermé par
+construction. S'ajoutent un plafond de 48 relais simultanés, 2 Mio par playlist,
+5 redirections et 15 secondes pour obtenir les en-têtes.
+
+Le relais ne s'ouvre qu'à la console : la commande
+
+```
+curl -I "http://127.0.0.1:3000/flux?url=https://exemple.test/live.m3u8"
+```
+
+répond `503` tant que le réglage est faux, et `403` pour une adresse absente du
+catalogue.
+
 ### Ajout d'un film par TMDb, depuis l'onglet Films
 
 Un film peut être ajouté au site par son identifiant TMDb. Le serveur interroge

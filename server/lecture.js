@@ -100,6 +100,42 @@ export const DESCRIPTION = [
     }
   },
   {
+    cle: "proxy_actif",
+    libelle: "Relais des flux",
+    type: "booleen",
+    defaut: false,
+    doc: "lecture-relais",
+    effet: "Le serveur va chercher les flux à la place du navigateur : plus de blocage CORS, User-Agent et Referer choisis. Coût : toute la bande passante passe par ce serveur.",
+    verifier(v) {
+      return typeof v === "boolean" ? null : "Le relais vaut vrai ou faux.";
+    }
+  },
+  {
+    cle: "proxy_agent",
+    libelle: "User-Agent du relais",
+    type: "texte",
+    defaut: "VLC/3.0.20 LibVLC/3.0.20",
+    doc: "lecture-relais-agent",
+    effet: "Identité annoncée au serveur du flux. Certains diffuseurs refusent les navigateurs et acceptent les lecteurs.",
+    verifier(v) {
+      if (typeof v !== "string") return "Le User-Agent est attendu sous forme de texte.";
+      const propre = v.trim();
+      return propre.length >= 5 && propre.length <= 120 ? null : "Le User-Agent doit compter de 5 à 120 caractères.";
+    }
+  },
+  {
+    cle: "proxy_referer",
+    libelle: "Referer envoyé au diffuseur",
+    type: "choix",
+    valeurs: ["origine", "aucun"],
+    defaut: "origine",
+    doc: "lecture-relais-referer",
+    effet: "Certains serveurs refusent une requête sans Referer. « origine » envoie le domaine du flux, « aucun » n'en envoie pas.",
+    verifier(v) {
+      return ["origine", "aucun"].includes(v) ? null : "Le Referer vaut origine ou aucun.";
+    }
+  },
+  {
     cle: "demarrage_muet",
     libelle: "Démarrage sans son",
     type: "booleen",

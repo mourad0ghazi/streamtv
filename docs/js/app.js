@@ -16,6 +16,7 @@ import * as vueRecherche from "./vues/recherche.js";
 import * as vueFavoris from "./vues/favoris-vue.js";
 import { etatErreur } from "./composants.js";
 import { appliquerApparence } from "./apparence-client.js";
+import { configurerRelais } from "./lecteur.js";
 import { installerIncidents } from "./incidents-client.js";
 
 const app = {
@@ -201,6 +202,7 @@ async function demarrer() {
     const etat = await obtenir("/api/etat");
     app.attenteSecondes = etat.attenteLecteur ?? 10;
     app.bandeauDemo = Boolean(etat.bandeauDemo);
+    configurerRelais(etat.proxyActif === true);
   } catch {
     app.attenteSecondes = 10;
   }

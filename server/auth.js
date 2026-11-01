@@ -68,6 +68,16 @@ export function motDePasseParDefaut() {
   return Boolean(secret?.defaut);
 }
 
+/**
+ * Clé de signature du relais de flux. C'est le secret déjà présent dans
+ * `data/secret.json` : un seul secret par installation, et il ne sort jamais
+ * de ce fichier.
+ */
+export async function cleRelais() {
+  await initialiser();
+  return secret.secret;
+}
+
 /** Code de vérification courant : six chiffres, renouvelé toutes les dix minutes. */
 export function codeVerification() {
   const fenetre = Math.floor(Date.now() / FENETRE_CODE_MS);
